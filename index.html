@@ -374,35 +374,40 @@
 
     // ── AR support check ───────────────────────────────────────────────────
     async function checkARSupport() {
-      // model-viewer ar-modes: webxr (Android), scene-viewer (Android fallback), quick-look (iOS)
-      // Check what the browser supports
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isAndroid = /Android/.test(navigator.userAgent);
-      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(ua);
+      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/Edg/.test(ua);
+      const isChromeMobile = /Chrome/.test(ua) && !/Edg/.test(ua) && (isAndroid || isIOS);
 
       if (isIOS && isSafari) {
-        // iOS Safari supports AR Quick Look via model-viewer
-        return { supported: true, method: 'quick-look', label: 'iOS Safari ✓ AR Quick Look available' };
+        // iPhone/iPad Safari: uses AR Quick Look (no WebXR needed)
+        // iOS 12+ supports AR Quick Look; iOS 16+ has WebXR but it's unreliable on older devices
+        return {
+          supported: true,
+          method: 'quick-look',
+          label: '✓ AR Quick Look available on iOS'
+        };
       }
-      if (isAndroid && isChrome) {
-        // Android Chrome supports WebXR or Scene Viewer
+
+      if (isAndroid && /Chrome/.test(ua)) {
+        // Android Chrome: try WebXR first, fall back to Scene Viewer
         if (navigator.xr) {
           try {
             const ok = await navigator.xr.isSessionSupported('immersive-ar');
-            if (ok) return { supported: true, method: 'webxr', label: 'Android Chrome ✓ ARCore available' };
+            if (ok) return { supported: true, method: 'webxr', label: '✓ ARCore available' };
           } catch (_) {}
         }
-        return { supported: true, method: 'scene-viewer', label: 'Android Chrome ✓ Scene Viewer available' };
+        return { supported: true, method: 'scene-viewer', label: '✓ Scene Viewer available' };
       }
-      if (isIOS) {
-        return { supported: true, method: 'quick-look', label: 'iOS ✓ AR Quick Look available' };
-      }
+
       if (isAndroid) {
-        return { supported: true, method: 'scene-viewer', label: 'Android ✓ AR available' };
+        return { supported: true, method: 'scene-viewer', label: '✓ AR available' };
       }
-      return { supported: false, method: null, label: 'AR not supported on this browser' };
+
+      // Desktop or unknown: 3D only
+      return { supported: false, method: null, label: 'AR works on iPhone/iPad and Android' };
     }
 
     // ── Load model ─────────────────────────────────────────────────────────
@@ -482,29 +487,27 @@
     async function launchAR() {
       if (!currentURL) return;
 
-      // Check support
-      const check = await checkARSupport();
-      if (!check.supported) {
-        showToast('AR not supported on this device. Use "View in 3D" instead.', 4000);
-        return;
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/Edg/.test(ua);
+
+      // iOS Safari: force quick-look only (WebXR not available on iPhone 11)
+      if (isIOS && isSafari) {
+        mv.arModes = 'quick-look';
+      } else {
+        mv.arModes = 'webxr scene-viewer quick-look';
       }
 
-      // Set AR modes based on support
-      // model-viewer will automatically pick the best available AR mode
-      mv.arModes = 'webxr scene-viewer quick-look';
       mv.reveal = 'auto';
-
-      isViewerMode = false;
       showScreen('');
       showViewerUI();
 
-      // Trigger AR presentation
-      if (mv.canShowARLink !== undefined) {
-        // Try to enter AR directly via model-viewer
-        mv.activateAR();
-      } else {
-        showToast('AR not available. Open this page on your iPad/Android device.', 4000);
-      }
+      // activateAR opens AR automatically in the best available mode
+      mv.activateAR().catch(err => {
+        console.warn('AR activation error:', err);
+        showToast('Could not start AR. Make sure you\'re on an AR-capable device.', 4000);
+      });
     }
 
     // ── Events ─────────────────────────────────────────────────────────────
