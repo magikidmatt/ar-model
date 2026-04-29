@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>AR Model Viewer</title>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
@@ -20,11 +21,14 @@
       touch-action: none;
     }
 
-    /* ── Canvas ── */
-    #canvas-container {
+    /* ── model-viewer fills the screen ── */
+    model-viewer {
       position: fixed;
       inset: 0;
-      z-index: 0;
+      width: 100%;
+      height: 100%;
+      background: #111;
+      --poster-color: transparent;
     }
 
     /* ── Screens ── */
@@ -36,7 +40,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      gap: 18px;
       padding: 32px 24px;
       background: rgba(10,10,10,0.93);
       backdrop-filter: blur(16px);
@@ -51,21 +55,8 @@
     }
 
     .screen-icon { font-size: 48px; line-height: 1; }
-
-    .screen h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-      text-align: center;
-    }
-
-    .screen p {
-      font-size: 14px;
-      color: #888;
-      text-align: center;
-      max-width: 300px;
-      line-height: 1.6;
-    }
+    .screen h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; text-align: center; }
+    .screen p { font-size: 14px; color: #888; text-align: center; max-width: 300px; line-height: 1.6; }
 
     /* ── Upload ── */
     .upload-zone {
@@ -104,40 +95,35 @@
       padding: 20px 24px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-    }
-
-    .model-info {
-      display: flex;
-      align-items: center;
       gap: 12px;
     }
+
+    .model-info { display: flex; align-items: center; gap: 12px; }
 
     .model-icon {
       width: 44px; height: 44px;
       background: rgba(108,92,231,0.15);
       border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
+      font-size: 22px; flex-shrink: 0;
     }
 
     .model-meta { flex: 1; min-width: 0; }
 
     .model-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 14px; font-weight: 600; color: #fff;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
-    .model-size {
-      font-size: 12px;
-      color: #666;
-      margin-top: 2px;
+    .model-size { font-size: 12px; color: #666; margin-top: 2px; }
+
+    .btn-change {
+      font-size: 12px; color: #666; background: none; border: none;
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      transition: color 0.15s, background 0.15s; width: auto; align-self: flex-start;
     }
+
+    .btn-change:hover { color: #999; background: rgba(255,255,255,0.06); }
 
     /* ── Buttons ── */
     .btn {
@@ -158,42 +144,16 @@
 
     .btn-ar {
       background: linear-gradient(135deg, #00c9a7, #00e5ff);
-      color: #0a0a0a;
-      font-weight: 700;
-      font-size: 16px;
+      color: #0a0a0a; font-weight: 700; font-size: 16px;
       box-shadow: 0 4px 24px rgba(0,201,167,0.4);
     }
 
     .btn-3d {
-      background: rgba(255,255,255,0.09);
-      color: #e0e0e0;
+      background: rgba(255,255,255,0.09); color: #e0e0e0;
       border: 1px solid rgba(255,255,255,0.12);
     }
 
     .btn-3d:hover { background: rgba(255,255,255,0.14); }
-
-    .btn-secondary {
-      background: rgba(255,255,255,0.07);
-      color: #aaa;
-      border: 1px solid rgba(255,255,255,0.08);
-      font-size: 13px;
-    }
-
-    .btn-secondary:hover { background: rgba(255,255,255,0.12); }
-
-    .btn-change {
-      font-size: 12px;
-      color: #666;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-      width: auto;
-    }
-
-    .btn-change:hover { color: #999; background: rgba(255,255,255,0.06); }
 
     /* ── Loading ── */
     .spinner {
@@ -224,33 +184,24 @@
     #top-bar.visible { opacity: 1; pointer-events: all; }
 
     .model-name-top {
-      font-size: 13px;
-      color: rgba(255,255,255,0.85);
-      font-weight: 600;
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 13px; color: rgba(255,255,255,0.85); font-weight: 600;
+      max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
     .icon-btn {
       width: 40px; height: 40px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-size: 18px;
-      cursor: pointer;
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.5); color: #fff;
+      font-size: 18px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent; transition: background 0.15s;
     }
 
     .icon-btn:hover { background: rgba(255,255,255,0.16); }
     .icon-btn:active { transform: scale(0.92); }
 
-    /* ── AR HUD ── */
-    #ar-hud {
+    /* ── Controls Bar ── */
+    #controls-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       z-index: 20;
@@ -265,94 +216,53 @@
       transition: opacity 0.4s;
     }
 
-    #ar-hud.visible { opacity: 1; pointer-events: all; }
+    #controls-bar.visible { opacity: 1; pointer-events: all; }
 
-    .ar-status { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 0.3px; }
-
-    /* ── Scale Controls ── */
-    #scale-control {
-      position: fixed;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      opacity: 0;
-      transition: opacity 0.4s;
-      pointer-events: none;
-    }
-
-    #scale-control.visible { opacity: 1; pointer-events: all; }
-
-    .scale-btn {
-      width: 46px; height: 46px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(0,0,0,0.55);
-      color: #fff;
-      font-size: 22px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .scale-btn:active { transform: scale(0.9); }
-
-    #scale-label { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
-
-    /* ── Reticle ── */
-    #reticle {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 52px; height: 52px;
-      z-index: 15;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    #reticle.visible { opacity: 1; }
-    #reticle svg { width: 100%; height: 100%; }
+    .controls-hint { font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; }
 
     /* ── Toast ── */
     #toast {
       position: fixed;
-      bottom: 130px;
-      left: 50%;
+      bottom: 130px; left: 50%;
       transform: translateX(-50%) translateY(8px);
-      background: rgba(0,0,0,0.88);
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      z-index: 30;
-      opacity: 0;
-      transition: opacity 0.3s, transform 0.3s;
-      pointer-events: none;
-      text-align: center;
-      max-width: 320px;
+      background: rgba(0,0,0,0.88); color: #fff;
+      padding: 12px 24px; border-radius: 12px;
+      font-size: 14px; z-index: 30;
+      opacity: 0; transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; text-align: center; max-width: 320px;
     }
 
-    #toast.visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+    #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Checkmark SVG ── */
+    .ar-supported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #00c9a7; }
+    .ar-unsupported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ff6b6b; }
   </style>
 </head>
 <body>
 
-  <div id="canvas-container"></div>
+  <!-- model-viewer AR element -->
+  <model-viewer
+    id="mv"
+    camera-controls
+    auto-rotate
+    auto-rotate-delay="0"
+    shadow-intensity="1"
+    shadow-softness="1"
+    exposure="1"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    xr-environment
+    loading="eager"
+    reveal="manual"
+    style="display:none;"
+  ></model-viewer>
 
   <!-- ── Screen: Upload ── -->
   <div id="screen-upload" class="screen">
     <div class="screen-icon">🪄</div>
     <h1>AR Model Viewer</h1>
-    <p>Select a <strong>.glb</strong> file, then choose how to view it.</p>
+    <p>Select a <strong>.glb</strong> file, then place it in the real world with AR.</p>
 
     <label class="upload-zone" id="upload-zone">
       <div class="icon">📦</div>
@@ -372,10 +282,12 @@
           <div class="model-size" id="ready-model-size">—</div>
         </div>
       </div>
-      <button class="btn btn-change" id="btn-change">Change file</button>
+      <button class="btn-change" id="btn-change">Change file</button>
     </div>
 
-    <button class="btn btn-ar" id="btn-launch-ar">📷 Launch AR</button>
+    <div id="ar-support-badge"></div>
+
+    <button class="btn btn-ar" id="btn-launch-ar">📷 View in AR</button>
     <button class="btn btn-3d" id="btn-view-3d">👁 View in 3D</button>
   </div>
 
@@ -392,93 +304,44 @@
     <button class="icon-btn" id="btn-close">✕</button>
   </div>
 
-  <!-- ── Scale Controls ── -->
-  <div id="scale-control">
-    <button class="scale-btn" id="btn-scale-up">+</button>
-    <div id="scale-label">100%</div>
-    <button class="scale-btn" id="btn-scale-down">−</button>
-  </div>
-
-  <!-- ── AR Reticle ── -->
-  <div id="reticle">
-    <svg viewBox="0 0 52 52" fill="none">
-      <circle cx="26" cy="26" r="20" stroke="rgba(0,201,167,0.9)" stroke-width="1.5" stroke-dasharray="5 4"/>
-      <circle cx="26" cy="26" r="5" fill="#00c9a7"/>
-      <line x1="26" y1="2" x2="26" y2="14" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="26" y1="38" x2="26" y2="50" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="2" y1="26" x2="14" y2="26" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="38" y1="26" x2="50" y2="26" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  </div>
-
-  <!-- ── AR HUD ── -->
-  <div id="ar-hud">
-    <div class="ar-status" id="ar-status">Point camera at a surface…</div>
-    <button class="btn btn-ar" id="btn-place" style="width:200px;font-size:16px;">Place Model</button>
-    <button class="btn btn-secondary" id="btn-exit-ar" style="width:auto;padding:10px 24px;font-size:13px;">Exit AR</button>
+  <!-- ── Controls Bar ── -->
+  <div id="controls-bar">
+    <div class="controls-hint">Drag to rotate · Pinch to zoom</div>
+    <button class="btn btn-ar" id="btn-ar-controls" style="width:200px;font-size:14px;">📷 View in AR</button>
   </div>
 
   <!-- ── Toast ── -->
   <div id="toast"></div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
-
   <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-    // ── State ──────────────────────────────────────────────────────────────
-    let renderer, scene, camera;
-    let modelGroup = null;
-    let loadedGLB = null;      // { url, name, size }
-    let currentScale = 1.0;
-    let baseModelScale = 1.0;
-    const SCALE_MIN = 0.05, SCALE_MAX = 5.0, SCALE_STEP = 0.1;
-
-    let isARMode = false;
-    let modelPlaced = false;
-    let hitTestSource = null;
-    let hitTestSourceRequested = false;
-
-    let orbitControls = null;
-
     // ── DOM ───────────────────────────────────────────────────────────────
-    const $  = id => document.getElementById(id);
+    const $ = id => document.getElementById(id);
     const screenUpload  = $('screen-upload');
-    const screenReady   = $('screen-ready');
+    const screenReady  = $('screen-ready');
     const screenLoading = $('screen-loading');
-    const arHud        = $('ar-hud');
-    const topBar       = $('top-bar');
-    const scaleControl = $('scale-control');
-    const reticle      = $('reticle');
-    const toast        = $('toast');
+    const topBar = $('top-bar');
+    const controlsBar = $('controls-bar');
+    const toast = $('toast');
 
-    const btnChangeFile  = $('btn-change');
-    const btnLaunchAR    = $('btn-launch-ar');
-    const btnView3d      = $('btn-view-3d');
-    const btnPlace       = $('btn-place');
-    const btnExitAR      = $('btn-exit-ar');
-    const btnClose       = $('btn-close');
-    const btnScaleUp     = $('btn-scale-up');
-    const btnScaleDown   = $('btn-scale-down');
-    const fileInput      = $('file-input');
-    const uploadZone     = $('upload-zone');
-    const arStatus       = $('ar-status');
-    const modelNameTop   = $('model-name-top');
+    const mv = $('mv');
+    const fileInput = $('file-input');
+    const uploadZone = $('upload-zone');
+    const btnChange = $('btn-change');
+    const btnLaunchAR = $('btn-launch-ar');
+    const btnView3d = $('btn-view-3d');
+    const btnArControls = $('btn-ar-controls');
+    const btnClose = $('btn-close');
+    const arSupportBadge = $('ar-support-badge');
+    const modelNameTop = $('model-name-top');
     const readyModelName = $('ready-model-name');
     const readyModelSize = $('ready-model-size');
-    const loadingTitle   = $('loading-title');
-    const loadingSub     = $('loading-sub');
-    const scaleLabel     = $('scale-label');
+    const loadingTitle = $('loading-title');
+    const loadingSub = $('loading-sub');
+
+    // ── State ──────────────────────────────────────────────────────────────
+    let currentFile = null;
+    let currentURL = null;
+    let isViewerMode = false;
 
     // ── Toast ──────────────────────────────────────────────────────────────
     function showToast(msg, dur = 2500) {
@@ -488,434 +351,206 @@
       window._tt = setTimeout(() => toast.classList.remove('visible'), dur);
     }
 
-    // ── Screen helpers ─────────────────────────────────────────────────────
+    // ── Screen helpers ───────────────────────────────────────────────────────
     function showScreen(name) {
       [screenUpload, screenReady, screenLoading].forEach(s => s.classList.add('hidden'));
-      if (name === 'upload')   { screenUpload.classList.remove('hidden'); return; }
-      if (name === 'ready')    { screenReady.classList.remove('hidden'); return; }
-      if (name === 'loading')  { screenLoading.classList.remove('hidden'); return; }
+      if (name === 'upload')  { screenUpload.classList.remove('hidden'); return; }
+      if (name === 'ready')   { screenReady.classList.remove('hidden'); return; }
+      if (name === 'loading') { screenLoading.classList.remove('hidden'); return; }
     }
 
-    function hideAllHUD() {
-      topBar.classList.remove('visible');
-      scaleControl.classList.remove('visible');
-      arHud.classList.remove('visible');
-      reticle.classList.remove('visible');
-    }
-
-    function showHUD() {
+    function showViewerUI() {
+      mv.style.display = 'block';
       topBar.classList.add('visible');
-      scaleControl.classList.add('visible');
+      controlsBar.classList.add('visible');
+      modelNameTop.textContent = currentFile?.name || 'Model';
     }
 
-    // ── Three.js init ──────────────────────────────────────────────────────
-    function initThree() {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'three-canvas';
-      document.getElementById('canvas-container').appendChild(canvas);
-
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.2;
-
-      scene = new THREE.Scene();
-
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
-      camera.position.set(0, 1.6, 3);
-
-      // Lights
-      scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-
-      const key = new THREE.DirectionalLight(0xffffff, 2.0);
-      key.position.set(2, 4, 2);
-      key.castShadow = true;
-      key.shadow.mapSize.set(1024, 1024);
-      key.shadow.camera.near = 0.1;
-      key.shadow.camera.far = 20;
-      key.shadow.camera.left = key.shadow.camera.bottom = -5;
-      key.shadow.camera.right = key.shadow.camera.top = 5;
-      scene.add(key);
-
-      const fill = new THREE.DirectionalLight(0xc8d4ff, 0.8);
-      fill.position.set(-3, 2, -2);
-      scene.add(fill);
-
-      const rim = new THREE.DirectionalLight(0xffe8c0, 0.6);
-      rim.position.set(0, 2, -4);
-      scene.add(rim);
-
-      // Ground plane
-      const groundGeo = new THREE.PlaneGeometry(20, 20);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.9 });
-      const ground = new THREE.Mesh(groundGeo, groundMat);
-      ground.rotation.x = -Math.PI / 2;
-      ground.position.y = -0.001;
-      ground.receiveShadow = true;
-      ground.name = 'ground';
-      scene.add(ground);
-
-      // Grid
-      const grid = new THREE.GridHelper(10, 20, 0x333355, 0x222244);
-      grid.material.opacity = 0.4;
-      grid.material.transparent = true;
-      scene.add(grid);
-
-      // OrbitControls
-      orbitControls = new OrbitControls(camera, renderer.domElement);
-      orbitControls.target.set(0, 0.8, 0);
-      orbitControls.enableDamping = true;
-      orbitControls.dampingFactor = 0.08;
-      orbitControls.minDistance = 0.3;
-      orbitControls.maxDistance = 20;
-      orbitControls.update();
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      renderer.setAnimationLoop(animate);
+    function hideViewerUI() {
+      mv.style.display = 'none';
+      topBar.classList.remove('visible');
+      controlsBar.classList.remove('visible');
     }
 
-    function animate() {
-      orbitControls?.update();
-      renderer.render(scene, camera);
-    }
+    // ── AR support check ───────────────────────────────────────────────────
+    async function checkARSupport() {
+      // model-viewer ar-modes: webxr (Android), scene-viewer (Android fallback), quick-look (iOS)
+      // Check what the browser supports
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
-    // ── GLB Loading ─────────────────────────────────────────────────────────
-    function loadGLB(file) {
-      showScreen('loading');
-      loadingTitle.textContent = `Loading "${file.name}"…`;
-      loadingSub.textContent = 'Parsing geometry…';
-
-      // Remove old model
-      if (modelGroup) { scene.remove(modelGroup); modelGroup = null; }
-
-      const url = URL.createObjectURL(file);
-      const loader = new GLTFLoader();
-      const draco = new DRACOLoader();
-      draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
-      loader.setDRACOLoader(draco);
-
-      loader.load(
-        url,
-        (gltf) => {
-          modelGroup = gltf.scene;
-
-          // Auto-scale to ~1.5m
-          const box = new THREE.Box3().setFromObject(modelGroup);
-          const size = box.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          baseModelScale = maxDim > 0 ? 1.5 / maxDim : 1;
-          modelGroup.scale.setScalar(baseModelScale);
-
-          // Center
-          const center = box.getCenter(new THREE.Vector3());
-          modelGroup.position.sub(center.clone().multiplyScalar(baseModelScale));
-          modelGroup.position.y = 0;
-
-          modelGroup.traverse(c => {
-            if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
-          });
-
-          scene.add(modelGroup);
-
-          currentScale = 1.0;
-
-          // Store loaded info
-          loadedGLB = {
-            url,
-            name: file.name,
-            size: formatSize(file.size),
-          };
-
-          // Update ready card
-          readyModelName.textContent = file.name;
-          readyModelSize.textContent = formatSize(file.size);
-
-          // Store file for reload on "Change file"
-          window._currentGLBFile = file;
-
-          showScreen('ready');
-        },
-        (progress) => {
-          if (progress.total > 0) {
-            const pct = Math.round((progress.loaded / progress.total) * 100);
-            loadingSub.textContent = `Downloading… ${pct}%`;
-          }
-        },
-        (err) => {
-          console.error(err);
-          showScreen('upload');
-          showToast('Failed to load. Try another file.');
+      if (isIOS && isSafari) {
+        // iOS Safari supports AR Quick Look via model-viewer
+        return { supported: true, method: 'quick-look', label: 'iOS Safari ✓ AR Quick Look available' };
+      }
+      if (isAndroid && isChrome) {
+        // Android Chrome supports WebXR or Scene Viewer
+        if (navigator.xr) {
+          try {
+            const ok = await navigator.xr.isSessionSupported('immersive-ar');
+            if (ok) return { supported: true, method: 'webxr', label: 'Android Chrome ✓ ARCore available' };
+          } catch (_) {}
         }
-      );
+        return { supported: true, method: 'scene-viewer', label: 'Android Chrome ✓ Scene Viewer available' };
+      }
+      if (isIOS) {
+        return { supported: true, method: 'quick-look', label: 'iOS ✓ AR Quick Look available' };
+      }
+      if (isAndroid) {
+        return { supported: true, method: 'scene-viewer', label: 'Android ✓ AR available' };
+      }
+      return { supported: false, method: null, label: 'AR not supported on this browser' };
     }
 
+    // ── Load model ─────────────────────────────────────────────────────────
     function formatSize(bytes) {
-      if (bytes < 1024) return bytes + ' B';
+      if (!bytes) return '—';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
-    // ── 3D Viewer ──────────────────────────────────────────────────────────
-    function enter3DViewer() {
-      // Clean up any AR session
-      if (renderer.xr.isPresenting) {
-        renderer.xr.getSession().end();
-      }
+    async function loadModel(file) {
+      showScreen('loading');
+      loadingTitle.textContent = `Loading "${file.name}"…`;
+      loadingSub.textContent = 'Please wait';
 
-      isARMode = false;
-      renderer.setAnimationLoop(animate);
+      // Revoke old URL
+      if (currentURL) { URL.revokeObjectURL(currentURL); currentURL = null; }
 
-      // Show scene
-      scene.getObjectByName('ground')?.traverse(c => c.visible = true);
-      scene.traverse(c => { if (c.isGridHelper) c.visible = true; });
+      const url = URL.createObjectURL(file);
+      currentURL = url;
+      currentFile = file;
 
-      orbitControls.enabled = true;
-      orbitControls.target.set(0, 0.8, 0);
-      camera.position.set(0, 1.6, 3);
+      // Set poster (loading placeholder handled by spinner)
+      mv.poster = '';
 
-      hideAllScreensAndShowViewer();
+      return new Promise((resolve, reject) => {
+        mv.addEventListener('load', () => {
+          loadingSub.textContent = 'Ready';
+          resolve();
+        }, { once: true });
+
+        mv.addEventListener('error', (e) => {
+          reject(e);
+        }, { once: true });
+
+        // Set src last to trigger load
+        mv.src = url;
+      });
     }
 
-    function hideAllScreensAndShowViewer() {
-      [screenUpload, screenReady, screenLoading].forEach(s => s.classList.add('hidden'));
-      hideAllHUD();
-      showHUD();
-      modelNameTop.textContent = loadedGLB?.name || 'Model';
-    }
-
-    // ── AR ─────────────────────────────────────────────────────────────────
-    async function checkARSupport() {
-      if (!navigator.xr) return { ok: false, reason: 'WebXR not available in this browser.' };
+    async function onFileSelected(file) {
       try {
-        const ok = await navigator.xr.isSessionSupported('immersive-ar');
-        if (!ok) return { ok: false, reason: 'AR not supported. Try iOS Safari 17+ or Android Chrome with ARCore.' };
-        return { ok: true };
-      } catch (e) {
-        return { ok: false, reason: 'Error: ' + e.message };
+        await loadModel(file);
+        readyModelName.textContent = file.name;
+        readyModelSize.textContent = formatSize(file.size);
+
+        const check = await checkARSupport();
+        if (check.supported) {
+          arSupportBadge.innerHTML = `<div class="ar-supported">✓ ${check.label}</div>`;
+        } else {
+          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠ ${check.label}</div>`;
+        }
+
+        showScreen('ready');
+      } catch (err) {
+        console.error(err);
+        showScreen('upload');
+        showToast('Failed to load. Try another file.');
       }
     }
 
+    // ── 3D Viewer mode ─────────────────────────────────────────────────────
+    function enterViewer() {
+      isViewerMode = true;
+      showScreen('');
+      showViewerUI();
+
+      // Disable auto-rotate so user has full control
+      mv.removeAttribute('auto-rotate');
+
+      // Reveal model
+      mv.reveal = 'auto';
+
+      showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
+    }
+
+    // ── AR mode ────────────────────────────────────────────────────────────
     async function launchAR() {
+      if (!currentURL) return;
+
+      // Check support
       const check = await checkARSupport();
-      if (!check.ok) {
-        showToast(check.reason, 4000);
+      if (!check.supported) {
+        showToast('AR not supported on this device. Use "View in 3D" instead.', 4000);
         return;
       }
 
-      showScreen('loading');
-      loadingTitle.textContent = 'Starting AR…';
-      loadingSub.textContent = 'Grant camera permission when prompted';
+      // Set AR modes based on support
+      // model-viewer will automatically pick the best available AR mode
+      mv.arModes = 'webxr scene-viewer quick-look';
+      mv.reveal = 'auto';
 
-      try {
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test', 'dom-overlay'],
-          optionalFeatures: ['local-floor', 'bounded-floor'],
-          domOverlay: { root: document.body },
-        });
+      isViewerMode = false;
+      showScreen('');
+      showViewerUI();
 
-        renderer.xr.setSession(session);
-
-      } catch (err) {
-        console.error(err);
-        showScreen('ready');
-        showToast('Could not start AR: ' + err.message, 4000);
+      // Trigger AR presentation
+      if (mv.canShowARLink !== undefined) {
+        // Try to enter AR directly via model-viewer
+        mv.activateAR();
+      } else {
+        showToast('AR not available. Open this page on your iPad/Android device.', 4000);
       }
     }
 
-    // ── XR Session Events ───────────────────────────────────────────────────
-    renderer?.xr?.addEventListener('sessionstart', () => {});
-    // We'll attach after initThree
-    function onXRSessionStart(session) {
-      isARMode = true;
-      modelPlaced = false;
-      hitTestSource = null;
-      hitTestSourceRequested = false;
+    // ── Events ─────────────────────────────────────────────────────────────
 
-      // Hide scene geometry (just show the model floating)
-      scene.getObjectByName('ground')?.traverse(c => c.visible = false);
-      scene.traverse(c => { if (c.isGridHelper) c.visible = false; });
-
-      orbitControls.enabled = false;
-
-      renderer.setAnimationLoop(arAnimate);
-
-      // UI
-      hideAllHUD();
-      arHud.classList.add('visible');
-      reticle.classList.add('visible');
-      modelNameTop.textContent = loadedGLB?.name || 'Model';
-      arStatus.textContent = 'Point camera at a flat surface…';
-      btnPlace.disabled = false;
-
-      session.addEventListener('end', onXRSessionEnd);
-    }
-
-    function onXRSessionEnd() {
-      isARMode = false;
-      modelPlaced = false;
-      hitTestSource = null;
-      hitTestSourceRequested = false;
-
-      renderer.setAnimationLoop(animate);
-
-      scene.getObjectByName('ground')?.traverse(c => c.visible = true);
-      scene.traverse(c => { if (c.isGridHelper) c.visible = true; });
-
-      orbitControls.enabled = true;
-      orbitControls.target.set(0, 0.8, 0);
-      camera.position.set(0, 1.6, 3);
-
-      hideAllHUD();
-      showHUD();
-      showScreen('ready');
-    }
-
-    function arAnimate() {
-      if (!renderer.xr.isPresenting) return;
-      const session = renderer.xr.getSession();
-      if (!session) return;
-
-      if (!hitTestSourceRequested) {
-        hitTestSourceRequested = true;
-        session.requestReferenceSpace('viewer').then(vs => {
-          session.requestHitTestSource({ space: vs }).then(src => {
-            hitTestSource = src;
-          }).catch(() => {});
-        }).catch(() => {});
-      }
-
-      const frame = renderer.xr.getFrame();
-      const refSpace = renderer.xr.getReferenceSpace();
-
-      if (hitTestSource && !modelPlaced) {
-        const results = frame.getHitTestResults(hitTestSource);
-        if (results.length > 0) {
-          const pose = results[0].getPose(refSpace);
-          if (pose && modelGroup) {
-            reticle.classList.add('visible');
-            const p = pose.transform.position;
-            const q = pose.transform.orientation;
-            modelGroup.position.set(p.x, p.y, p.z);
-            modelGroup.quaternion.set(q.x, q.y, q.z, q.w);
-            if (!scene.children.includes(modelGroup)) scene.add(modelGroup);
-            arStatus.textContent = 'Surface found — tap "Place Model"';
-          }
-        } else {
-          reticle.classList.remove('visible');
-          arStatus.textContent = 'Point camera at a flat surface…';
-        }
-      }
-
-      orbitControls?.update();
-      renderer.render(scene, camera);
-    }
-
-    function placeModel() {
-      if (!modelGroup) return;
-      modelPlaced = true;
-      btnPlace.disabled = true;
-      reticle.classList.remove('visible');
-      arStatus.textContent = 'Model placed!';
-      showToast('Model anchored ✓', 1800);
-    }
-
-    // ── Events ──────────────────────────────────────────────────────────────
-
-    // File select
     fileInput.addEventListener('change', e => {
       const file = e.target.files[0];
-      if (file) loadGLB(file);
+      if (file) onFileSelected(file);
     });
 
-    // Drag & drop
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', e => {
       e.preventDefault();
       uploadZone.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
-      if (file) loadGLB(file);
+      if (file) onFileSelected(file);
     });
 
-    // Change file
-    btnChangeFile.addEventListener('click', () => {
-      fileInput.click();
-    });
+    btnChange.addEventListener('click', () => fileInput.click());
 
-    // Launch AR / View 3D
     btnLaunchAR.addEventListener('click', launchAR);
-    btnView3d.addEventListener('click', enter3DViewer);
+    btnView3d.addEventListener('click', enterViewer);
+    btnArControls.addEventListener('click', launchAR);
 
-    // Place model
-    btnPlace.addEventListener('click', placeModel);
-
-    // Exit AR
-    btnExitAR.addEventListener('click', () => {
-      if (renderer?.xr?.isPresenting) renderer.xr.getSession().end();
-    });
-
-    // Close / go back
     btnClose.addEventListener('click', () => {
-      if (renderer?.xr?.isPresenting) renderer.xr.getSession().end();
-      renderer.setAnimationLoop(animate);
-
-      if (modelGroup) { scene.remove(modelGroup); modelGroup = null; }
-      loadedGLB = null;
-      currentScale = 1.0;
-      modelPlaced = false;
-      hitTestSource = null;
-      hitTestSourceRequested = false;
-
-      scene.getObjectByName('ground')?.traverse(c => c.visible = true);
-      scene.traverse(c => { if (c.isGridHelper) c.visible = true; });
-      orbitControls.enabled = true;
-      orbitControls.target.set(0, 0.8, 0);
-      camera.position.set(0, 1.6, 3);
-
-      hideAllHUD();
+      if (currentURL) { URL.revokeObjectURL(currentURL); currentURL = null; }
+      currentFile = null;
+      mv.src = '';
+      isViewerMode = false;
+      hideViewerUI();
       showScreen('upload');
+      arSupportBadge.innerHTML = '';
+      fileInput.value = '';
     });
 
-    // Scale
-    btnScaleUp.addEventListener('click', () => {
-      currentScale = Math.min(currentScale + SCALE_STEP, SCALE_MAX);
-      applyScale();
-    });
-
-    btnScaleDown.addEventListener('click', () => {
-      currentScale = Math.max(currentScale - SCALE_STEP, SCALE_MIN);
-      applyScale();
-    });
-
-    function applyScale() {
-      if (!modelGroup) return;
-      modelGroup.scale.setScalar(baseModelScale * currentScale);
-      scaleLabel.textContent = Math.round(currentScale * 100) + '%';
-    }
-
-    // Keyboard
-    window.addEventListener('keydown', e => {
-      if (e.key === '+' || e.key === '=') {
-        currentScale = Math.min(currentScale + SCALE_STEP, SCALE_MAX);
-        applyScale();
-      }
-      if (e.key === '-' || e.key === '_') {
-        currentScale = Math.max(currentScale - SCALE_STEP, SCALE_MIN);
-        applyScale();
+    // model-viewer events
+    mv.addEventListener('ar-status', (e) => {
+      // e.detail.status: 'session-started', 'session-ended', 'not-presented'
+      if (e.detail.status === 'session-ended') {
+        // AR session ended — stay in viewer
       }
     });
 
-    // ── Init ───────────────────────────────────────────────────────────────
-    initThree();
+    mv.addEventListener('load', () => {
+      // Model loaded
+    });
 
   </script>
 </body>
