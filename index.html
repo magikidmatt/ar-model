@@ -57,32 +57,57 @@
     .screen p { font-size: 14px; color: #888; text-align: center; max-width: 300px; line-height: 1.6; }
     .screen strong { color: #ccc; }
 
-    /* ── Upload ── */
-    .upload-zone {
+    /* ── Upload / Model Select ── */
+    #screen-upload {
+      gap: 14px;
+    }
+
+    .upload-main {
       width: 100%;
-      max-width: 340px;
-      border: 2px dashed #333;
-      border-radius: 20px;
-      padding: 36px 24px;
+      max-width: 360px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 14px;
+    }
+
+    .model-select-wrap {
+      width: 100%;
+    }
+
+    #model-select {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: #f0f0f0;
+      font-family: inherit;
+      outline: none;
+      appearance: none;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      background: rgba(255,255,255,0.03);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
     }
 
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #6c5ce7;
-      background: rgba(108,92,231,0.08);
+    #model-select:focus { border-color: #6c5ce7; }
+    #model-select option { background: #1a1a1a; color: #f0f0f0; }
+    #model-select option:first-child { color: #666; }
+
+    .divider-or {
+      font-size: 12px;
+      color: #555;
+      width: 100%;
+      text-align: center;
+      margin: 2px 0;
     }
 
-    .upload-zone .icon { font-size: 36px; }
-    .upload-zone .label { font-size: 14px; color: #aaa; }
-    .upload-zone .hint { font-size: 12px; color: #555; }
+    /* hide the old upload zone */
+    .upload-zone { display: none !important; }
 
-    #file-input { display: none; }
 
     /* ── Gear / Settings button on upload screen ── */
     #btn-settings {
@@ -344,19 +369,34 @@
     style="display:none;"
   ></model-viewer>
 
-  <!-- ── Screen: Upload ── -->
+  <!-- ── Screen: Upload / Model Select ── -->
   <div id="screen-upload" class="screen">
     <button id="btn-settings" title="Settings">⚙️</button>
-    <div class="screen-icon">🪄</div>
-    <h1>AR Model Viewer</h1>
-    <p>Select a <strong>.glb</strong> or <strong>.usdz</strong> file to view in 3D or AR.</p>
 
-    <label class="upload-zone" id="upload-zone">
-      <div class="icon">📦</div>
-      <div class="label">Tap or drop to select a model file</div>
-      <div class="hint">GLB · GLTF · USDZ</div>
-      <input type="file" id="file-input" accept=".glb,.gltf,.usdz" />
-    </label>
+    <div class="upload-main">
+      <div class="screen-icon">🪄</div>
+      <h1>AR Model Viewer</h1>
+      <p>Select a model to view in <strong>3D</strong> or <strong>AR</strong>.</p>
+
+      <div class="model-select-wrap">
+        <select id="model-select">
+          <option value="">— Choose a model —</option>
+          <option value="https://modelviewer.dev/shared-assets/models/Astronaut.glb">🧑‍🚀 Astronaut (GLB)</option>
+          <option value="https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Duck.glb">🦆 Duck (GLB)</option>
+          <option value="https://modelviewer.dev/shared-assets/models/Horse.glb">🐴 Horse (GLB)</option>
+          <option value="https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/usdz/saeukkang.usdz">🇰🇷 Saeukkang (USDZ)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-ar" id="btn-load-preset">Load Model</button>
+
+      <p class="divider-or">or</p>
+
+      <button class="btn btn-secondary" id="btn-custom-url">🔗 Paste custom URL</button>
+    </div>
+
+    <!-- Hidden file input (kept for reset compatibility, not shown) -->
+    <input type="file" id="file-input" accept=".glb,.gltf,.usdz" style="display:none" />
   </div>
 
   <!-- ── Screen: Model Ready ── -->
@@ -370,7 +410,7 @@
         </div>
       </div>
       <div class="card-actions">
-        <button class="btn-change" id="btn-change">📂 Change file</button>
+        <button class="btn-change" id="btn-change">📂 Choose another model</button>
         <button class="btn-reset" id="btn-reset">✕ Reset</button>
       </div>
     </div>
@@ -456,7 +496,9 @@
     const toast          = $('toast');
     const mv             = $('mv');
     const fileInput      = $('file-input');
-    const uploadZone     = $('upload-zone');
+    const modelSelect    = $('model-select');
+    const btnLoadPreset  = $('btn-load-preset');
+    const btnCustomUrl   = $('btn-custom-url');
     const btnChange      = $('btn-change');
     const btnReset       = $('btn-reset');
     const btnLaunchAR    = $('btn-launch-ar');
@@ -741,10 +783,10 @@
       isCurrentUSDZ = false;
       mv.src = '';
       hideViewerUI();
+      modelSelect.value = '';
       showScreen('upload');
       arSupportBadge.innerHTML = '';
       iosSection.style.display = 'none';
-      fileInput.value = '';
     }
 
     // ── Helper: after model loaded, show ready screen ─────────────────────
@@ -755,39 +797,42 @@
       renderReadyButtons();
     }
 
-    // ── File input ────────────────────────────────────────────────────────
-    fileInput.addEventListener('change', async e => {
-      const file = e.target.files[0];
-      if (!file) return;
+    // ── Preset model dropdown ─────────────────────────────────────────────
+    async function loadPreset(url) {
+      if (!url) {
+        showToast('Please select a model first', 2000);
+        return;
+      }
       try {
-        await loadModelFile(file);
-        afterLoad(file.name, formatSize(file.size));
+        await loadModelURL(url);
+        const name = url.split('/').pop().split('?')[0] || 'model';
+        afterLoad(name, '(remote)');
       } catch (err) {
         console.error(err);
         showScreen('upload');
-        showToast('Failed to load. Try another file.');
+        showToast('Failed to load model. Check CORS or URL.', 4000);
       }
+    }
+
+    btnLoadPreset.addEventListener('click', () => loadPreset(modelSelect.value));
+
+    modelSelect.addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadPreset(modelSelect.value);
     });
 
-    // ── Drag & drop ───────────────────────────────────────────────────────
-    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-    uploadZone.addEventListener('drop', async e => {
-      e.preventDefault();
-      uploadZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      try {
-        await loadModelFile(file);
-        afterLoad(file.name, formatSize(file.size));
-      } catch (err) {
-        showScreen('upload');
-        showToast('Failed to load. Try another file.');
-      }
+    // ── Custom URL button ─────────────────────────────────────────────────
+    btnCustomUrl.addEventListener('click', () => {
+      const saved = loadSettings();
+      settingsUrlInput.value = saved || '';
+      settingsModal.classList.add('visible');
+      settingsUrlInput.focus();
     });
 
     // ── Ready screen buttons ──────────────────────────────────────────────
-    btnChange.addEventListener('click', () => fileInput.click());
+    btnChange.addEventListener('click', () => {
+      modelSelect.value = '';
+      showScreen('upload');
+    });
     btnReset.addEventListener('click', resetAll);
 
     btnLaunchARiOS.addEventListener('click', openARQuickLook);
@@ -861,10 +906,12 @@
           await loadModelURL(saved);
           const name = saved.split('/').pop().split('?')[0] || 'model';
           afterLoad(name, '(remote)');
+          return;
         } catch {
-          showScreen('upload');
+          // fall through to upload screen
         }
       }
+      showScreen('upload');
     })();
 
   </script>
