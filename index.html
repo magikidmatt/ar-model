@@ -84,6 +84,64 @@
 
     #file-input { display: none; }
 
+    /* ── Gear / Settings button on upload screen ── */
+    #btn-settings {
+      position: absolute;
+      top: 20px; right: 20px;
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: #888;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #btn-settings:hover { background: rgba(255,255,255,0.12); color: #ccc; }
+
+    /* ── Settings modal ── */
+    #settings-modal {
+      position: fixed;
+      inset: 0; z-index: 50;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0;
+      padding: 32px 24px;
+      background: rgba(10,10,10,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #settings-modal.visible { opacity: 1; pointer-events: all; }
+    #settings-panel {
+      width: 100%; max-width: 360px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    #settings-panel h2 { font-size: 16px; font-weight: 700; color: #fff; }
+    .settings-row { display: flex; flex-direction: column; gap: 6px; }
+    .settings-label { font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+    .settings-input {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px; color: #f0f0f0;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .settings-input:focus { border-color: #6c5ce7; }
+    .settings-input::placeholder { color: #444; }
+    .settings-hint { font-size: 11px; color: #555; line-height: 1.5; }
+
     /* ── Model Ready Card ── */
     #model-ready-card {
       width: 100%;
@@ -116,13 +174,21 @@
 
     .model-size { font-size: 12px; color: #666; margin-top: 2px; }
 
+    .card-actions { display: flex; gap: 8px; }
+
     .btn-change {
       font-size: 12px; color: #666; background: none; border: none;
       cursor: pointer; padding: 4px 8px; border-radius: 6px;
-      transition: color 0.15s, background 0.15s; width: auto; align-self: flex-start;
+      transition: color 0.15s, background 0.15s; width: auto;
     }
-
     .btn-change:hover { color: #999; background: rgba(255,255,255,0.06); }
+
+    .btn-reset {
+      font-size: 12px; color: #ff6b6b; background: none; border: none;
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      transition: color 0.15s, background 0.15s; width: auto;
+    }
+    .btn-reset:hover { color: #ff8e8e; background: rgba(255,107,107,0.08); }
 
     /* ── Buttons ── */
     .btn {
@@ -160,6 +226,13 @@
       box-shadow: 0 4px 24px rgba(0,122,255,0.4);
     }
 
+    .btn-secondary {
+      background: rgba(255,255,255,0.09); color: #e0e0e0;
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 14px; padding: 12px 20px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.14); }
+
     /* ── Loading ── */
     .spinner {
       width: 44px; height: 44px;
@@ -170,24 +243,6 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Progress bar ── */
-    .progress-bar {
-      width: 100%;
-      max-width: 300px;
-      height: 6px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #00c9a7, #00e5ff);
-      border-radius: 3px;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
 
     /* ── Top Bar ── */
     #top-bar {
@@ -260,24 +315,17 @@
     .ar-supported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #00c9a7; }
     .ar-unsupported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ff6b6b; }
 
-    /* ── QR Modal ── */
-    #qr-modal {
-      position: fixed;
-      inset: 0; z-index: 40;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px;
-      padding: 32px 24px;
-      background: rgba(10,10,10,0.95);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s;
+    /* ── GLB info notice ── */
+    #ios-section {
+      width: 100%; max-width: 360px;
+      background: rgba(255,107,107,0.07);
+      border: 1px solid rgba(255,107,107,0.15);
+      border-radius: 12px;
+      padding: 12px 16px;
     }
-
-    #qr-modal.visible { opacity: 1; pointer-events: all; }
-
-    #qr-modal h2 { font-size: 18px; font-weight: 700; text-align: center; }
-    #qr-modal p { font-size: 14px; color: #888; text-align: center; max-width: 280px; line-height: 1.6; }
-    #qr-canvas { border-radius: 12px; background: #fff; }
+    #ios-section p {
+      font-size: 13px; color: #bbb; text-align: center; line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -300,9 +348,10 @@
 
   <!-- ── Screen: Upload ── -->
   <div id="screen-upload" class="screen">
+    <button id="btn-settings" title="Settings">⚙️</button>
     <div class="screen-icon">🪄</div>
     <h1>AR Model Viewer</h1>
-    <p>Select a <strong>.glb</strong> or <strong>.usdz</strong> file, then place it in the real world using your device camera.</p>
+    <p>Select a <strong>.glb</strong> or <strong>.usdz</strong> file to view in 3D or AR.</p>
 
     <label class="upload-zone" id="upload-zone">
       <div class="icon">📦</div>
@@ -316,33 +365,36 @@
   <div id="screen-ready" class="screen hidden">
     <div id="model-ready-card">
       <div class="model-info">
-        <div class="model-icon">📦</div>
+        <div class="model-icon" id="model-icon-badge">📦</div>
         <div class="model-meta">
           <div class="model-name" id="ready-model-name">model.glb</div>
           <div class="model-size" id="ready-model-size">—</div>
         </div>
       </div>
-      <button class="btn-change" id="btn-change">Change file</button>
+      <div class="card-actions">
+        <button class="btn-change" id="btn-change">📂 Change file</button>
+        <button class="btn-reset" id="btn-reset">✕ Reset</button>
+      </div>
     </div>
 
     <div id="ar-support-badge"></div>
 
-    <!-- iOS section: shown for GLB files -->
-    <div id="ios-section" style="display:none; width:100%; max-width:360px;">
-      <div style="font-size:13px; color:#888; text-align:center; padding:12px 0; line-height:1.6;">
-        AR Quick Look needs a <strong style="color:#ccc;">.usdz</strong> file.<br/>
-        This GLB can be viewed in full 3D — use <strong style="color:#ccc;">View in 3D</strong> below.
-      </div>
+    <!-- Only shown for GLB on iOS -->
+    <div id="ios-section" style="display:none;">
+      <p>AR Quick Look requires a <strong>.usdz</strong> file.<br/>This GLB can only be viewed in 3D.</p>
     </div>
 
+    <!-- USDZ: AR Quick Look (iOS) -->
     <button class="btn btn-ios" id="btn-launch-ar-ios" style="display:none;">
       🍎 Open AR Quick Look
     </button>
 
+    <!-- Android/Desktop: WebXR AR -->
     <button class="btn btn-ar" id="btn-launch-ar" style="display:none;">
       📷 View in AR
     </button>
 
+    <!-- Always shown for GLB; also shown for USDZ -->
     <button class="btn btn-3d" id="btn-view-3d">👁 View in 3D</button>
   </div>
 
@@ -365,90 +417,92 @@
     <button class="btn btn-ar" id="btn-ar-controls" style="width:200px;font-size:14px;">📷 View in AR</button>
   </div>
 
-  <!-- ── QR Modal ── -->
-  <div id="qr-modal">
-    <h2>Open on your iPhone/iPad</h2>
-    <p>Scan this QR code with your iOS device camera to open the AR viewer and launch AR Quick Look.</p>
-    <canvas id="qr-canvas" width="200" height="200"></canvas>
-    <p id="qr-link" style="font-size:12px; color:#555; word-break:break-all;"></p>
-    <button class="btn btn-3d" id="btn-close-qr" style="width:auto;padding:10px 24px;">Close</button>
+  <!-- ── Settings Modal ── -->
+  <div id="settings-modal">
+    <div id="settings-panel">
+      <h2>⚙️ Settings</h2>
+
+      <div class="settings-row">
+        <div class="settings-label">Model URL</div>
+        <input
+          class="settings-input"
+          id="settings-model-url"
+          type="url"
+          placeholder="https://example.com/model.glb"
+          inputmode="url"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        />
+        <div class="settings-hint">Paste a direct link to a .glb or .usdz file. It will be loaded automatically when you open the app.</div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ar" id="btn-settings-save" style="flex:1;font-size:14px;padding:12px;">Save &amp; Load</button>
+        <button class="btn btn-secondary" id="btn-settings-close" style="width:auto;padding:12px 18px;">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── Toast ── -->
   <div id="toast"></div>
 
   <script>
-    // QR Code generator (minimal, no dependency)
-    function generateQR(text, canvas, size) {
-      // Use a QR code API endpoint to render to canvas
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const ctx = canvas.getContext('2d');
-        canvas.width = size; canvas.height = size;
-        ctx.drawImage(img, 0, 0, size, size);
-      };
-      img.onerror = () => {
-        // Fallback: draw placeholder text
-        const ctx = canvas.getContext('2d');
-        canvas.width = size; canvas.height = size;
-        ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(0, 0, size, size);
-        ctx.fillStyle = '#0a0a0a';
-        ctx.font = '12px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('QR code', size/2, size/2 - 10);
-        ctx.font = '10px Inter, sans-serif';
-        ctx.fillText(text.substring(0, 30) + '…', size/2, size/2 + 10);
-      };
-      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=10`;
-    }
-
     // ── DOM ───────────────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
-    const screenUpload  = $('screen-upload');
-    const screenReady  = $('screen-ready');
-    const screenLoading = $('screen-loading');
-    const topBar = $('top-bar');
-    const controlsBar = $('controls-bar');
-    const toast = $('toast');
-    const mv = $('mv');
-    const fileInput = $('file-input');
-    const uploadZone = $('upload-zone');
-    const btnChange = $('btn-change');
-    const btnLaunchAR = $('btn-launch-ar');
+    const screenUpload   = $('screen-upload');
+    const screenReady    = $('screen-ready');
+    const screenLoading  = $('screen-loading');
+    const topBar         = $('top-bar');
+    const controlsBar    = $('controls-bar');
+    const toast          = $('toast');
+    const mv             = $('mv');
+    const fileInput      = $('file-input');
+    const uploadZone     = $('upload-zone');
+    const btnChange      = $('btn-change');
+    const btnReset       = $('btn-reset');
+    const btnLaunchAR    = $('btn-launch-ar');
     const btnLaunchARiOS = $('btn-launch-ar-ios');
-    const btnView3d = $('btn-view-3d');
-    const btnArControls = $('btn-ar-controls');
-    const btnClose = $('btn-close');
+    const btnView3d      = $('btn-view-3d');
+    const btnArControls  = $('btn-ar-controls');
+    const btnClose       = $('btn-close');
     const arSupportBadge = $('ar-support-badge');
-    const modelNameTop = $('model-name-top');
+    const modelNameTop   = $('model-name-top');
     const readyModelName = $('ready-model-name');
     const readyModelSize = $('ready-model-size');
-    const loadingTitle = $('loading-title');
-    const loadingSub = $('loading-sub');
-    const iosSection = $('ios-section');
-    const qrModal = $('qr-modal');
-    const qrCanvas = $('qr-canvas');
-    const qrLink = $('qr-link');
-    const btnCloseQR = $('btn-close-qr');
+    const modelIconBadge = $('model-icon-badge');
+    const loadingTitle   = $('loading-title');
+    const loadingSub     = $('loading-sub');
+    const iosSection     = $('ios-section');
+    const settingsModal  = $('settings-modal');
+    const settingsUrlInput = $('settings-model-url');
+    const btnSettings    = $('btn-settings');
+    const btnSettingsSave  = $('btn-settings-save');
+    const btnSettingsClose = $('btn-settings-close');
 
     // ── State ───────────────────────────────────────────────────────────
-    let currentFile = null;
-    let currentGLBURL = null;   // blob URL for model-viewer
-    let isCurrentUSDZ = false;
+    let currentFile    = null;
+    let currentBlobURL = null;   // blob URL for model-viewer (file uploads)
+    let currentSrcURL  = null;   // remote URL (from settings)
+    let isCurrentUSDZ  = false;
 
-    // ── Device detection ───────────────────────────────────────────────────
-    function getDevice() {
-      const ua = navigator.userAgent;
-      const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && touchEnabled());
-      const isAndroid = /Android/.test(ua);
-      const isMobile = isIOS || isAndroid || /mobile|iphone|ipad/i.test(ua);
-      return { isIOS, isAndroid, isMobile };
+    const STORAGE_KEY = 'arviewer_model_url';
+
+    // ── Persist settings ─────────────────────────────────────────────────
+    function loadSettings() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; }
+    }
+    function saveSettings(url) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(url)); } catch {}
     }
 
-    function touchEnabled() {
-      return navigator.maxTouchPoints > 0;
+    // ── Device detection ──────────────────────────────────────────────────
+    function getDevice() {
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/.test(ua);
+      return { isIOS, isAndroid };
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────
@@ -467,11 +521,18 @@
       if (name === 'loading') screenLoading.classList.remove('hidden');
     }
 
-    function showViewerUI() {
+    function showViewerUI(label) {
       mv.style.display = 'block';
       topBar.classList.add('visible');
       controlsBar.classList.add('visible');
-      modelNameTop.textContent = currentFile?.name || 'Model';
+      modelNameTop.textContent = label || currentFile?.name || 'Model';
+      // In 3D viewer, hide AR button for GLB on iOS
+      const { isIOS } = getDevice();
+      if (isIOS && !isCurrentUSDZ) {
+        btnArControls.style.display = 'none';
+      } else {
+        btnArControls.style.display = 'block';
+      }
     }
 
     function hideViewerUI() {
@@ -486,67 +547,89 @@
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
-    // ── GLB → USDZ Conversion ─────────────────────────────────────────────
-    // Uses turbomesh API to convert GLB → USDZ in the cloud
-    async function convertGLBtoUSDZ(file, onProgress) {
-      const formData = new FormData();
-      formData.append('model', file, file.name);
+    // ── Show Ready screen buttons ─────────────────────────────────────────
+    function renderReadyButtons() {
+      const { isIOS, isAndroid } = getDevice();
+      arSupportBadge.innerHTML = '';
+      iosSection.style.display = 'none';
+      btnLaunchAR.style.display    = 'none';
+      btnLaunchARiOS.style.display = 'none';
+      btnView3d.style.display      = 'block';
 
-      // Try turbomesh.xyz API
-      try {
-        onProgress('Uploading to converter…', 10);
-        const res = await fetch('https://api.turbomesh.com/convert', {
-          method: 'POST',
-          body: formData,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.url) {
-            onProgress('Downloading USDZ…', 80);
-            const usdzRes = await fetch(data.url);
-            const blob = await usdzRes.blob();
-            return URL.createObjectURL(blob);
-          }
+      if (isCurrentUSDZ) {
+        // USDZ: AR available everywhere that supports Quick Look
+        modelIconBadge.textContent = '🍎';
+        if (isIOS) {
+          arSupportBadge.innerHTML = `<div class="ar-supported">✓ USDZ — AR Quick Look ready</div>`;
+          btnLaunchARiOS.style.display = 'block';
+        } else {
+          // On non-iOS, usdz can still be used with model-viewer AR
+          arSupportBadge.innerHTML = `<div class="ar-supported">✓ USDZ loaded</div>`;
+          btnLaunchAR.style.display = 'block';
         }
-      } catch (_) {}
-
-      // Fallback: use GLBTF free converter
-      try {
-        onProgress('Uploading to converter…', 10);
-        const res = await fetch('https://api.meshy.ai/v1/convert', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer placeholder' },
-          body: formData,
-        });
-      } catch (_) {}
-
-      return null;
+      } else {
+        // GLB / GLTF
+        modelIconBadge.textContent = '📦';
+        if (isIOS) {
+          // No AR on iOS for GLB
+          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR needs .usdz on iOS</div>`;
+          iosSection.style.display = 'block';
+          // Only 3D button shown (already visible by default)
+        } else {
+          // Android / Desktop: AR via WebXR / Scene Viewer
+          arSupportBadge.innerHTML = `<div class="ar-supported">✓ AR available</div>`;
+          btnLaunchAR.style.display = 'block';
+        }
+      }
     }
 
-    // ── Load model into model-viewer ─────────────────────────────────────
-    async function loadModel(file) {
+    // ── Load model from File ─────────────────────────────────────────────
+    async function loadModelFile(file) {
       showScreen('loading');
       loadingTitle.textContent = `Loading "${file.name}"…`;
       loadingSub.textContent = 'Please wait';
 
-      if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
+      if (currentBlobURL) { URL.revokeObjectURL(currentBlobURL); currentBlobURL = null; }
+      currentSrcURL = null;
 
       isCurrentUSDZ = /\.usdz$/i.test(file.name);
       const url = URL.createObjectURL(file);
-      currentGLBURL = url;
+      currentBlobURL = url;
       currentFile = file;
 
       return new Promise((resolve, reject) => {
-        const onLoad = () => {
+        const onLoad = () => { cleanup(); resolve(); };
+        const onErr  = (e) => { cleanup(); reject(e); };
+        function cleanup() {
           mv.removeEventListener('load', onLoad);
           mv.removeEventListener('error', onErr);
-          resolve();
-        };
-        const onErr = (e) => {
+        }
+        mv.addEventListener('load', onLoad);
+        mv.addEventListener('error', onErr);
+        mv.src = url;
+      });
+    }
+
+    // ── Load model from URL ──────────────────────────────────────────────
+    async function loadModelURL(url) {
+      showScreen('loading');
+      const shortName = url.split('/').pop().split('?')[0] || 'model';
+      loadingTitle.textContent = `Loading "${shortName}"…`;
+      loadingSub.textContent = 'Fetching from URL…';
+
+      if (currentBlobURL) { URL.revokeObjectURL(currentBlobURL); currentBlobURL = null; }
+      currentFile = null;
+      currentSrcURL = url;
+
+      isCurrentUSDZ = /\.usdz(\?.*)?$/i.test(url);
+
+      return new Promise((resolve, reject) => {
+        const onLoad = () => { cleanup(); resolve(); };
+        const onErr  = (e) => { cleanup(); reject(e); };
+        function cleanup() {
           mv.removeEventListener('load', onLoad);
           mv.removeEventListener('error', onErr);
-          reject(e);
-        };
+        }
         mv.addEventListener('load', onLoad);
         mv.addEventListener('error', onErr);
         mv.src = url;
@@ -555,90 +638,76 @@
 
     // ── iOS AR Quick Look ───────────────────────────────────────────────
     function openARQuickLook() {
-      if (!isCurrentUSDZ) return;
+      const src = currentBlobURL || currentSrcURL;
+      if (!src || !isCurrentUSDZ) return;
 
       const a = document.createElement('a');
-      a.href = currentGLBURL;
-      a.download = currentFile.name;
+      a.href = src;
+      a.download = currentFile ? currentFile.name : src.split('/').pop() || 'model.usdz';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      showToast('Downloading AR file… Open it from Files to view in AR Quick Look', 5000);
-    }
-
-    // ── Show AR mode buttons based on device ──────────────────────────────
-    function showARButtons() {
-      const { isIOS } = getDevice();
-      arSupportBadge.innerHTML = '';
-
-      if (isIOS) {
-        // If file is already USDZ → show AR Quick Look button
-        if (isCurrentUSDZ) {
-          arSupportBadge.innerHTML = `<div class="ar-supported">✓ USDZ — AR Quick Look ready</div>`;
-          iosSection.style.display = 'none';
-          btnLaunchAR.style.display = 'none';
-          btnLaunchARiOS.style.display = 'block';
-          btnLaunchARiOS.textContent = '🍎 Open AR Quick Look';
-          btnLaunchARiOS.disabled = false;
-          return;
-        }
-
-        // GLB on iOS — no AR, explain and let user use 3D viewer
-        arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR Quick Look needs .usdz — view in 3D instead</div>`;
-        iosSection.style.display = 'block';
-        btnLaunchAR.style.display = 'none';
-        btnLaunchARiOS.style.display = 'none';
-      } else {
-        arSupportBadge.innerHTML = `<div class="ar-supported">✓ AR available</div>`;
-        iosSection.style.display = 'none';
-        btnLaunchAR.style.display = 'block';
-        btnLaunchARiOS.style.display = 'none';
-      }
+      showToast('Tap the downloaded file in the Files app to open AR Quick Look', 5000);
     }
 
     // ── 3D Viewer ────────────────────────────────────────────────────────
     function enterViewer() {
       showScreen('');
-      showViewerUI();
+      const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
+      showViewerUI(label);
       mv.removeAttribute('auto-rotate');
       mv.reveal = 'auto';
       showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
     }
 
-    // ── AR (Android / WebXR) ─────────────────────────────────────────────
+    // ── AR (Android / Desktop WebXR) ─────────────────────────────────────
     function launchAR() {
-      if (!currentGLBURL) return;
+      if (!currentBlobURL && !currentSrcURL) return;
       const { isAndroid } = getDevice();
 
-      if (isAndroid) {
-        mv.arModes = 'scene-viewer webxr quick-look';
-      } else {
-        mv.arModes = 'webxr scene-viewer quick-look';
-      }
-
+      mv.arModes = isAndroid ? 'scene-viewer webxr quick-look' : 'webxr scene-viewer quick-look';
       mv.reveal = 'auto';
       showScreen('');
-      showViewerUI();
+      const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
+      showViewerUI(label);
 
       mv.activateAR().catch(err => {
         console.warn('AR error:', err);
-        showToast('AR not available on this device. Use "View in 3D" instead.', 4000);
+        showToast('AR not available on this device — try "View in 3D"', 4000);
       });
     }
 
-    // ── Events ───────────────────────────────────────────────────────────
+    // ── Reset ─────────────────────────────────────────────────────────────
+    function resetAll() {
+      if (currentBlobURL) { URL.revokeObjectURL(currentBlobURL); currentBlobURL = null; }
+      currentFile = null;
+      currentSrcURL = null;
+      isCurrentUSDZ = false;
+      mv.src = '';
+      hideViewerUI();
+      showScreen('upload');
+      arSupportBadge.innerHTML = '';
+      iosSection.style.display = 'none';
+      fileInput.value = '';
+    }
 
+    // ── Helper: after model loaded, show ready screen ─────────────────────
+    function afterLoad(name, size) {
+      readyModelName.textContent = name;
+      readyModelSize.textContent = size;
+      showScreen('ready');
+      renderReadyButtons();
+    }
+
+    // ── File input ────────────────────────────────────────────────────────
     fileInput.addEventListener('change', async e => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        await loadModel(file);
-        readyModelName.textContent = file.name;
-        readyModelSize.textContent = formatSize(file.size);
-        showScreen('ready');
-        showARButtons();
+        await loadModelFile(file);
+        afterLoad(file.name, formatSize(file.size));
       } catch (err) {
         console.error(err);
         showScreen('upload');
@@ -646,6 +715,7 @@
       }
     });
 
+    // ── Drag & drop ───────────────────────────────────────────────────────
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', async e => {
@@ -654,22 +724,23 @@
       const file = e.dataTransfer.files[0];
       if (!file) return;
       try {
-        await loadModel(file);
-        readyModelName.textContent = file.name;
-        readyModelSize.textContent = formatSize(file.size);
-        showScreen('ready');
-        showARButtons();
+        await loadModelFile(file);
+        afterLoad(file.name, formatSize(file.size));
       } catch (err) {
         showScreen('upload');
         showToast('Failed to load. Try another file.');
       }
     });
 
+    // ── Ready screen buttons ──────────────────────────────────────────────
     btnChange.addEventListener('click', () => fileInput.click());
+    btnReset.addEventListener('click', resetAll);
 
     btnLaunchARiOS.addEventListener('click', openARQuickLook);
     btnLaunchAR.addEventListener('click', launchAR);
     btnView3d.addEventListener('click', enterViewer);
+
+    // ── Viewer controls ───────────────────────────────────────────────────
     btnArControls.addEventListener('click', () => {
       const { isIOS } = getDevice();
       if (isIOS && isCurrentUSDZ) openARQuickLook();
@@ -677,18 +748,65 @@
     });
 
     btnClose.addEventListener('click', () => {
-      if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
-      currentFile = null;
-      isCurrentUSDZ = false;
-      mv.src = '';
       hideViewerUI();
-      showScreen('upload');
-      arSupportBadge.innerHTML = '';
-      iosSection.style.display = 'none';
-      fileInput.value = '';
+      showScreen('ready');   // go back to ready screen, NOT upload
     });
 
-    btnCloseQR.addEventListener('click', () => qrModal.classList.remove('visible'));
+    // ── Settings ──────────────────────────────────────────────────────────
+    btnSettings.addEventListener('click', () => {
+      const saved = loadSettings();
+      settingsUrlInput.value = saved || '';
+      settingsModal.classList.add('visible');
+    });
+
+    btnSettingsClose.addEventListener('click', () => {
+      settingsModal.classList.remove('visible');
+    });
+
+    btnSettingsSave.addEventListener('click', async () => {
+      const url = settingsUrlInput.value.trim();
+      if (!url) {
+        showToast('Please enter a URL', 2000);
+        return;
+      }
+      // Basic URL check
+      try { new URL(url); } catch {
+        showToast('Invalid URL — make sure it starts with https://', 3000);
+        return;
+      }
+      saveSettings(url);
+      settingsModal.classList.remove('visible');
+
+      try {
+        await loadModelURL(url);
+        const name = url.split('/').pop().split('?')[0] || 'model';
+        afterLoad(name, '(remote)');
+        showToast('Model loaded from URL ✓', 2000);
+      } catch (err) {
+        console.error(err);
+        showScreen('upload');
+        showToast('Could not load model from URL. Check CORS settings.', 4000);
+      }
+    });
+
+    // Close settings modal on backdrop tap
+    settingsModal.addEventListener('click', e => {
+      if (e.target === settingsModal) settingsModal.classList.remove('visible');
+    });
+
+    // ── Auto-load saved URL on startup ────────────────────────────────────
+    (async () => {
+      const saved = loadSettings();
+      if (saved) {
+        try {
+          await loadModelURL(saved);
+          const name = saved.split('/').pop().split('?')[0] || 'model';
+          afterLoad(name, '(remote)');
+        } catch {
+          showScreen('upload');
+        }
+      }
+    })();
 
   </script>
 </body>
