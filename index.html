@@ -327,19 +327,16 @@
 
     <div id="ar-support-badge"></div>
 
-    <!-- iOS section -->
-    <div id="ios-section" style="display:none; width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px;">
-      <div style="font-size:13px; color:#666; text-align:center;">
-        iOS AR requires a <strong style="color:#ccc;">.usdz</strong> file — converting now…
+    <!-- iOS section: shown for GLB files -->
+    <div id="ios-section" style="display:none; width:100%; max-width:360px;">
+      <div style="font-size:13px; color:#888; text-align:center; padding:12px 0; line-height:1.6;">
+        AR Quick Look needs a <strong style="color:#ccc;">.usdz</strong> file.<br/>
+        This GLB can be viewed in full 3D — use <strong style="color:#ccc;">View in 3D</strong> below.
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="convert-progress"></div>
-      </div>
-      <div id="convert-status" style="font-size:12px; color:#555; text-align:center;">Preparing…</div>
     </div>
 
     <button class="btn btn-ios" id="btn-launch-ar-ios" style="display:none;">
-      🍎 Open AR on iPhone/iPad
+      🍎 Open AR Quick Look
     </button>
 
     <button class="btn btn-ar" id="btn-launch-ar" style="display:none;">
@@ -431,8 +428,6 @@
     const loadingTitle = $('loading-title');
     const loadingSub = $('loading-sub');
     const iosSection = $('ios-section');
-    const convertProgress = $('convert-progress');
-    const convertStatus = $('convert-status');
     const qrModal = $('qr-modal');
     const qrCanvas = $('qr-canvas');
     const qrLink = $('qr-link');
@@ -441,8 +436,6 @@
     // ── State ───────────────────────────────────────────────────────────
     let currentFile = null;
     let currentGLBURL = null;   // blob URL for model-viewer
-    let currentUSDZURL = null;   // blob URL for AR Quick Look
-    let conversionDone = false;
     let isCurrentUSDZ = false;
 
     // ── Device detection ───────────────────────────────────────────────────
@@ -537,14 +530,11 @@
       loadingSub.textContent = 'Please wait';
 
       if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
-      if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
 
-      const isUSDZ = /\.usdz$/i.test(file.name);
+      isCurrentUSDZ = /\.usdz$/i.test(file.name);
       const url = URL.createObjectURL(file);
       currentGLBURL = url;
       currentFile = file;
-      conversionDone = isUSDZ; // Skip conversion if already USDZ
-      isCurrentUSDZ = isUSDZ;
 
       return new Promise((resolve, reject) => {
         const onLoad = () => {
@@ -564,83 +554,42 @@
     }
 
     // ── iOS AR Quick Look ───────────────────────────────────────────────
-    // Opens AR Quick Look using the USDZ file via an anchor download
-    async function openARQuickLook() {
-      if (!currentUSDZURL && !isCurrentUSDZ) {
-        showToast('Please wait for USDZ conversion to complete…', 3000);
-        return;
-      }
+    function openARQuickLook() {
+      if (!isCurrentUSDZ) return;
 
-      // Trigger download of USDZ — iOS Safari will offer to open in Quick Look
       const a = document.createElement('a');
-      a.href = currentUSDZURL || currentGLBURL;
-      a.download = currentFile.name.replace(/\.(glb|gltf)$/i, '.usdz');
+      a.href = currentGLBURL;
+      a.download = currentFile.name;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      const isNative = isCurrentUSDZ;
-      showToast(
-        isNative
-          ? 'Downloading AR file… Open it from Files to view in AR Quick Look'
-          : 'Downloading AR file… Open it from Files to view in AR Quick Look',
-        5000
-      );
+      showToast('Downloading AR file… Open it from Files to view in AR Quick Look', 5000);
     }
 
     // ── Show AR mode buttons based on device ──────────────────────────────
-    async function showARButtons() {
+    function showARButtons() {
       const { isIOS } = getDevice();
       arSupportBadge.innerHTML = '';
 
       if (isIOS) {
-        arSupportBadge.innerHTML = `<div class="ar-supported">✓ iOS detected — AR Quick Look</div>`;
-
-        // If file is already USDZ, skip conversion entirely
+        // If file is already USDZ → show AR Quick Look button
         if (isCurrentUSDZ) {
+          arSupportBadge.innerHTML = `<div class="ar-supported">✓ USDZ — AR Quick Look ready</div>`;
           iosSection.style.display = 'none';
           btnLaunchAR.style.display = 'none';
           btnLaunchARiOS.style.display = 'block';
           btnLaunchARiOS.textContent = '🍎 Open AR Quick Look';
           btnLaunchARiOS.disabled = false;
-          conversionDone = true;
           return;
         }
 
-        // Start USDZ conversion for GLB files
-        iosSection.style.display = 'flex';
+        // GLB on iOS — no AR, explain and let user use 3D viewer
+        arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR Quick Look needs .usdz — view in 3D instead</div>`;
+        iosSection.style.display = 'block';
         btnLaunchAR.style.display = 'none';
         btnLaunchARiOS.style.display = 'none';
-
-        const updateProgress = (status, pct) => {
-          convertStatus.textContent = status;
-          convertProgress.style.width = pct + '%';
-        };
-
-        updateProgress('Converting GLB → USDZ…', 5);
-
-        // Convert with timeout fallback
-        const result = await Promise.race([
-          convertGLBtoUSDZ(currentFile, updateProgress),
-          new Promise(r => setTimeout(() => r(null), 25000)) // 25s timeout
-        ]);
-
-        if (result) {
-          currentUSDZURL = result;
-          conversionDone = true;
-          updateProgress('Done!', 100);
-          btnLaunchARiOS.style.display = 'block';
-          btnLaunchARiOS.textContent = '🍎 Open AR Quick Look';
-          btnLaunchARiOS.disabled = false;
-          showToast('Conversion complete! Tap "Open AR Quick Look" below.', 4000);
-        } else {
-          updateProgress('Conversion timed out — try a smaller file', 0);
-          iosSection.style.display = 'none';
-          btnLaunchAR.style.display = 'block';
-          btnLaunchAR.textContent = '📷 Try AR (WebXR)';
-          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ Conversion failed. Try a smaller file (< 10 MB) or use Android/Chrome.</div>`;
-        }
       } else {
         arSupportBadge.innerHTML = `<div class="ar-supported">✓ AR available</div>`;
         iosSection.style.display = 'none';
@@ -689,7 +638,7 @@
         readyModelName.textContent = file.name;
         readyModelSize.textContent = formatSize(file.size);
         showScreen('ready');
-        await showARButtons();
+        showARButtons();
       } catch (err) {
         console.error(err);
         showScreen('upload');
@@ -709,7 +658,7 @@
         readyModelName.textContent = file.name;
         readyModelSize.textContent = formatSize(file.size);
         showScreen('ready');
-        await showARButtons();
+        showARButtons();
       } catch (err) {
         showScreen('upload');
         showToast('Failed to load. Try another file.');
@@ -723,14 +672,12 @@
     btnView3d.addEventListener('click', enterViewer);
     btnArControls.addEventListener('click', () => {
       const { isIOS } = getDevice();
-      if (isIOS && currentUSDZURL) openARQuickLook();
-      else if (isIOS) showToast('Please wait for USDZ conversion…', 2000);
+      if (isIOS && isCurrentUSDZ) openARQuickLook();
       else launchAR();
     });
 
     btnClose.addEventListener('click', () => {
       if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
-      if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
       currentFile = null;
       isCurrentUSDZ = false;
       mv.src = '';
