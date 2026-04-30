@@ -338,8 +338,6 @@
     shadow-intensity="1"
     shadow-softness="1"
     exposure="1"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
     xr-environment
     loading="eager"
     reveal="manual"
@@ -526,12 +524,18 @@
       topBar.classList.add('visible');
       controlsBar.classList.add('visible');
       modelNameTop.textContent = label || currentFile?.name || 'Model';
-      // In 3D viewer, hide AR button for GLB on iOS
+
+      // AR button in controls bar: only for USDZ (GLB AR is disabled per user request)
       const { isIOS } = getDevice();
-      if (isIOS && !isCurrentUSDZ) {
-        btnArControls.style.display = 'none';
-      } else {
+      if (isCurrentUSDZ) {
         btnArControls.style.display = 'block';
+        btnArControls.textContent = isIOS ? '🍎 Open AR Quick Look' : '📷 View in AR';
+        // model-viewer can't preview USDZ, but we still need src set so the
+        // element is active and AR attributes can be applied. Set for all platforms.
+        const src = currentBlobURL || currentSrcURL;
+        if (src && mv.src !== src) mv.src = src;
+      } else {
+        btnArControls.style.display = 'none';
       }
     }
 
@@ -568,27 +572,21 @@
           btnLaunchAR.style.display = 'block';
         }
       } else {
-        // GLB / GLTF
+        // GLB / GLTF — AR not supported in Quick Look on iOS, and user reports
+        // AR also doesn't work reliably for GLB on other platforms, so only show 3D.
         modelIconBadge.textContent = '📦';
+        arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR needs .usdz</div>`;
         if (isIOS) {
-          // No AR on iOS for GLB
-          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR needs .usdz on iOS</div>`;
           iosSection.style.display = 'block';
-          // Only 3D button shown (already visible by default)
-        } else {
-          // Android / Desktop: AR via WebXR / Scene Viewer
-          arSupportBadge.innerHTML = `<div class="ar-supported">✓ AR available</div>`;
-          btnLaunchAR.style.display = 'block';
         }
+        // Only 3D button — AR hidden for GLB across all platforms
+        btnLaunchAR.style.display    = 'none';
+        btnLaunchARiOS.style.display = 'none';
       }
     }
 
     // ── Load model from File ─────────────────────────────────────────────
     async function loadModelFile(file) {
-      showScreen('loading');
-      loadingTitle.textContent = `Loading "${file.name}"…`;
-      loadingSub.textContent = 'Please wait';
-
       if (currentBlobURL) { URL.revokeObjectURL(currentBlobURL); currentBlobURL = null; }
       currentSrcURL = null;
 
@@ -597,13 +595,38 @@
       currentBlobURL = url;
       currentFile = file;
 
+      if (isCurrentUSDZ) {
+        // model-viewer (Google) does not support USDZ (Apple format).
+        // Skip 3D preview — go straight to ready screen.
+        // AR Quick Look will be offered via the ready-screen button.
+        return;
+      }
+
+      // GLB / GLTF — load into model-viewer for 3D preview
+      showScreen('loading');
+      loadingTitle.textContent = `Loading "${file.name}"…`;
+      loadingSub.textContent = 'Please wait';
+
       return new Promise((resolve, reject) => {
-        const onLoad = () => { cleanup(); resolve(); };
-        const onErr  = (e) => { cleanup(); reject(e); };
-        function cleanup() {
+        let settled = false;
+        function settle(fn, val) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           mv.removeEventListener('load', onLoad);
           mv.removeEventListener('error', onErr);
+          fn(val);
         }
+        const onLoad = () => settle(resolve);
+        const onErr = (e) => {
+          // Prefer a human-readable message from model-viewer internals
+          const detail = e?.detail?.message || e?.message || String(e);
+          settle(reject, new Error('model-viewer failed: ' + detail));
+        };
+        const timer = setTimeout(() => {
+          settle(reject, new Error('Loading timed out — file may be too large'));
+        }, 30000);
+
         mv.addEventListener('load', onLoad);
         mv.addEventListener('error', onErr);
         mv.src = url;
@@ -612,24 +635,42 @@
 
     // ── Load model from URL ──────────────────────────────────────────────
     async function loadModelURL(url) {
-      showScreen('loading');
-      const shortName = url.split('/').pop().split('?')[0] || 'model';
-      loadingTitle.textContent = `Loading "${shortName}"…`;
-      loadingSub.textContent = 'Fetching from URL…';
-
       if (currentBlobURL) { URL.revokeObjectURL(currentBlobURL); currentBlobURL = null; }
       currentFile = null;
       currentSrcURL = url;
 
       isCurrentUSDZ = /\.usdz(\?.*)?$/i.test(url);
 
+      if (isCurrentUSDZ) {
+        // model-viewer (Google) does not support USDZ (Apple format).
+        // Skip 3D preview — go straight to ready screen.
+        return;
+      }
+
+      showScreen('loading');
+      const shortName = url.split('/').pop().split('?')[0] || 'model';
+      loadingTitle.textContent = `Loading "${shortName}"…`;
+      loadingSub.textContent = 'Fetching from URL…';
+
       return new Promise((resolve, reject) => {
-        const onLoad = () => { cleanup(); resolve(); };
-        const onErr  = (e) => { cleanup(); reject(e); };
-        function cleanup() {
+        let settled = false;
+        function settle(fn, val) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
           mv.removeEventListener('load', onLoad);
           mv.removeEventListener('error', onErr);
+          fn(val);
         }
+        const onLoad = () => settle(resolve);
+        const onErr = (e) => {
+          const detail = e?.detail?.message || e?.message || String(e);
+          settle(reject, new Error('model-viewer failed: ' + detail));
+        };
+        const timer = setTimeout(() => {
+          settle(reject, new Error('Loading timed out — file may be too large'));
+        }, 30000);
+
         mv.addEventListener('load', onLoad);
         mv.addEventListener('error', onErr);
         mv.src = url;
@@ -652,22 +693,14 @@
       showToast('Tap the downloaded file in the Files app to open AR Quick Look', 5000);
     }
 
-    // ── 3D Viewer ────────────────────────────────────────────────────────
-    function enterViewer() {
-      showScreen('');
-      const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
-      showViewerUI(label);
-      mv.removeAttribute('auto-rotate');
-      mv.reveal = 'auto';
-      showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
-    }
-
     // ── AR (Android / Desktop WebXR) ─────────────────────────────────────
     function launchAR() {
       if (!currentBlobURL && !currentSrcURL) return;
       const { isAndroid } = getDevice();
 
-      mv.arModes = isAndroid ? 'scene-viewer webxr quick-look' : 'webxr scene-viewer quick-look';
+      // Dynamically add AR attributes only when needed (removed from HTML to prevent GLB errors)
+      mv.setAttribute('ar', '');
+      mv.setAttribute('ar-modes', isAndroid ? 'scene-viewer webxr quick-look' : 'webxr scene-viewer quick-look');
       mv.reveal = 'auto';
       showScreen('');
       const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
@@ -677,6 +710,27 @@
         console.warn('AR error:', err);
         showToast('AR not available on this device — try "View in 3D"', 4000);
       });
+    }
+
+    // ── 3D Viewer ────────────────────────────────────────────────────────
+    function enterViewer() {
+      showScreen('');
+      const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
+      showViewerUI(label);
+      mv.removeAttribute('auto-rotate');
+
+      if (isCurrentUSDZ) {
+        // model-viewer doesn't support 3D preview of USDZ.
+        // Set src anyway so the element is active; show guidance toast.
+        if (currentBlobURL) mv.src = currentBlobURL;
+        else if (currentSrcURL) mv.src = currentSrcURL;
+        mv.reveal = 'auto';
+        showToast('🍎 Use "Open AR Quick Look" for the full AR experience', 4000);
+      } else {
+        // GLB / GLTF
+        mv.reveal = 'auto';
+        showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
+      }
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────
@@ -743,8 +797,13 @@
     // ── Viewer controls ───────────────────────────────────────────────────
     btnArControls.addEventListener('click', () => {
       const { isIOS } = getDevice();
-      if (isIOS && isCurrentUSDZ) openARQuickLook();
-      else launchAR();
+      if (isIOS && isCurrentUSDZ) {
+        // iOS + USDZ → AR Quick Look
+        openARQuickLook();
+      } else {
+        // Android/Desktop + USDZ → WebXR; GLB → WebXR
+        launchAR();
+      }
     });
 
     btnClose.addEventListener('click', () => {
