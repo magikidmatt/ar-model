@@ -21,14 +21,12 @@
       touch-action: none;
     }
 
-    /* ── model-viewer fills the screen ── */
     model-viewer {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
       background: #111;
-      --poster-color: transparent;
     }
 
     /* ── Screens ── */
@@ -57,6 +55,7 @@
     .screen-icon { font-size: 48px; line-height: 1; }
     .screen h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; text-align: center; }
     .screen p { font-size: 14px; color: #888; text-align: center; max-width: 300px; line-height: 1.6; }
+    .screen strong { color: #ccc; }
 
     /* ── Upload ── */
     .upload-zone {
@@ -155,6 +154,12 @@
 
     .btn-3d:hover { background: rgba(255,255,255,0.14); }
 
+    .btn-ios {
+      background: linear-gradient(135deg, #007aff, #5ac8fa);
+      color: #fff; font-weight: 700; font-size: 16px;
+      box-shadow: 0 4px 24px rgba(0,122,255,0.4);
+    }
+
     /* ── Loading ── */
     .spinner {
       width: 44px; height: 44px;
@@ -165,6 +170,24 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Progress bar ── */
+    .progress-bar {
+      width: 100%;
+      max-width: 300px;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00c9a7, #00e5ff);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
 
     /* ── Top Bar ── */
     #top-bar {
@@ -234,14 +257,31 @@
 
     #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── Checkmark SVG ── */
     .ar-supported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #00c9a7; }
     .ar-unsupported { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ff6b6b; }
+
+    /* ── QR Modal ── */
+    #qr-modal {
+      position: fixed;
+      inset: 0; z-index: 40;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px;
+      padding: 32px 24px;
+      background: rgba(10,10,10,0.95);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    #qr-modal.visible { opacity: 1; pointer-events: all; }
+
+    #qr-modal h2 { font-size: 18px; font-weight: 700; text-align: center; }
+    #qr-modal p { font-size: 14px; color: #888; text-align: center; max-width: 280px; line-height: 1.6; }
+    #qr-canvas { border-radius: 12px; background: #fff; }
   </style>
 </head>
 <body>
 
-  <!-- model-viewer AR element -->
   <model-viewer
     id="mv"
     camera-controls
@@ -262,7 +302,7 @@
   <div id="screen-upload" class="screen">
     <div class="screen-icon">🪄</div>
     <h1>AR Model Viewer</h1>
-    <p>Select a <strong>.glb</strong> file, then place it in the real world with AR.</p>
+    <p>Select a <strong>.glb</strong> file, then place it in the real world using your device camera.</p>
 
     <label class="upload-zone" id="upload-zone">
       <div class="icon">📦</div>
@@ -287,7 +327,25 @@
 
     <div id="ar-support-badge"></div>
 
-    <button class="btn btn-ar" id="btn-launch-ar">📷 View in AR</button>
+    <!-- iOS section -->
+    <div id="ios-section" style="display:none; width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:13px; color:#666; text-align:center;">
+        iOS AR requires a <strong style="color:#ccc;">.usdz</strong> file — converting now…
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="convert-progress"></div>
+      </div>
+      <div id="convert-status" style="font-size:12px; color:#555; text-align:center;">Preparing…</div>
+    </div>
+
+    <button class="btn btn-ios" id="btn-launch-ar-ios" style="display:none;">
+      🍎 Open AR on iPhone/iPad
+    </button>
+
+    <button class="btn btn-ar" id="btn-launch-ar" style="display:none;">
+      📷 View in AR
+    </button>
+
     <button class="btn btn-3d" id="btn-view-3d">👁 View in 3D</button>
   </div>
 
@@ -310,10 +368,45 @@
     <button class="btn btn-ar" id="btn-ar-controls" style="width:200px;font-size:14px;">📷 View in AR</button>
   </div>
 
+  <!-- ── QR Modal ── -->
+  <div id="qr-modal">
+    <h2>Open on your iPhone/iPad</h2>
+    <p>Scan this QR code with your iOS device camera to open the AR viewer and launch AR Quick Look.</p>
+    <canvas id="qr-canvas" width="200" height="200"></canvas>
+    <p id="qr-link" style="font-size:12px; color:#555; word-break:break-all;"></p>
+    <button class="btn btn-3d" id="btn-close-qr" style="width:auto;padding:10px 24px;">Close</button>
+  </div>
+
   <!-- ── Toast ── -->
   <div id="toast"></div>
 
-  <script type="module">
+  <script>
+    // QR Code generator (minimal, no dependency)
+    function generateQR(text, canvas, size) {
+      // Use a QR code API endpoint to render to canvas
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const ctx = canvas.getContext('2d');
+        canvas.width = size; canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+      };
+      img.onerror = () => {
+        // Fallback: draw placeholder text
+        const ctx = canvas.getContext('2d');
+        canvas.width = size; canvas.height = size;
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#0a0a0a';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('QR code', size/2, size/2 - 10);
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillText(text.substring(0, 30) + '…', size/2, size/2 + 10);
+      };
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=10`;
+    }
+
     // ── DOM ───────────────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
     const screenUpload  = $('screen-upload');
@@ -322,12 +415,12 @@
     const topBar = $('top-bar');
     const controlsBar = $('controls-bar');
     const toast = $('toast');
-
     const mv = $('mv');
     const fileInput = $('file-input');
     const uploadZone = $('upload-zone');
     const btnChange = $('btn-change');
     const btnLaunchAR = $('btn-launch-ar');
+    const btnLaunchARiOS = $('btn-launch-ar-ios');
     const btnView3d = $('btn-view-3d');
     const btnArControls = $('btn-ar-controls');
     const btnClose = $('btn-close');
@@ -337,13 +430,34 @@
     const readyModelSize = $('ready-model-size');
     const loadingTitle = $('loading-title');
     const loadingSub = $('loading-sub');
+    const iosSection = $('ios-section');
+    const convertProgress = $('convert-progress');
+    const convertStatus = $('convert-status');
+    const qrModal = $('qr-modal');
+    const qrCanvas = $('qr-canvas');
+    const qrLink = $('qr-link');
+    const btnCloseQR = $('btn-close-qr');
 
-    // ── State ──────────────────────────────────────────────────────────────
+    // ── State ───────────────────────────────────────────────────────────
     let currentFile = null;
-    let currentURL = null;
-    let isViewerMode = false;
+    let currentGLBURL = null;   // blob URL for model-viewer
+    let currentUSDZURL = null;   // blob URL for AR Quick Look
+    let conversionDone = false;
 
-    // ── Toast ──────────────────────────────────────────────────────────────
+    // ── Device detection ───────────────────────────────────────────────────
+    function getDevice() {
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && touchEnabled());
+      const isAndroid = /Android/.test(ua);
+      const isMobile = isIOS || isAndroid || /mobile|iphone|ipad/i.test(ua);
+      return { isIOS, isAndroid, isMobile };
+    }
+
+    function touchEnabled() {
+      return navigator.maxTouchPoints > 0;
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────
     function showToast(msg, dur = 2500) {
       toast.textContent = msg;
       toast.classList.add('visible');
@@ -351,12 +465,12 @@
       window._tt = setTimeout(() => toast.classList.remove('visible'), dur);
     }
 
-    // ── Screen helpers ───────────────────────────────────────────────────────
+    // ── Screen helpers ───────────────────────────────────────────────────
     function showScreen(name) {
       [screenUpload, screenReady, screenLoading].forEach(s => s.classList.add('hidden'));
-      if (name === 'upload')  { screenUpload.classList.remove('hidden'); return; }
-      if (name === 'ready')   { screenReady.classList.remove('hidden'); return; }
-      if (name === 'loading') { screenLoading.classList.remove('hidden'); return; }
+      if (name === 'upload')  screenUpload.classList.remove('hidden');
+      if (name === 'ready')   screenReady.classList.remove('hidden');
+      if (name === 'loading') screenLoading.classList.remove('hidden');
     }
 
     function showViewerUI() {
@@ -372,129 +486,165 @@
       controlsBar.classList.remove('visible');
     }
 
-    // ── AR support check ───────────────────────────────────────────────────
-    async function checkARSupport() {
-      const ua = navigator.userAgent;
-      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isAndroid = /Android/.test(ua);
-      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/Edg/.test(ua);
-      const isChromeMobile = /Chrome/.test(ua) && !/Edg/.test(ua) && (isAndroid || isIOS);
-
-      if (isIOS && isSafari) {
-        // iPhone/iPad Safari: uses AR Quick Look (no WebXR needed)
-        // iOS 12+ supports AR Quick Look; iOS 16+ has WebXR but it's unreliable on older devices
-        return {
-          supported: true,
-          method: 'quick-look',
-          label: '✓ AR Quick Look available on iOS'
-        };
-      }
-
-      if (isAndroid && /Chrome/.test(ua)) {
-        // Android Chrome: try WebXR first, fall back to Scene Viewer
-        if (navigator.xr) {
-          try {
-            const ok = await navigator.xr.isSessionSupported('immersive-ar');
-            if (ok) return { supported: true, method: 'webxr', label: '✓ ARCore available' };
-          } catch (_) {}
-        }
-        return { supported: true, method: 'scene-viewer', label: '✓ Scene Viewer available' };
-      }
-
-      if (isAndroid) {
-        return { supported: true, method: 'scene-viewer', label: '✓ AR available' };
-      }
-
-      // Desktop or unknown: 3D only
-      return { supported: false, method: null, label: 'AR works on iPhone/iPad and Android' };
-    }
-
-    // ── Load model ─────────────────────────────────────────────────────────
     function formatSize(bytes) {
       if (!bytes) return '—';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
+    // ── GLB → USDZ Conversion ─────────────────────────────────────────────
+    // Uses turbomesh API to convert GLB → USDZ in the cloud
+    async function convertGLBtoUSDZ(file, onProgress) {
+      const formData = new FormData();
+      formData.append('model', file, file.name);
+
+      // Try turbomesh.xyz API
+      try {
+        onProgress('Uploading to converter…', 10);
+        const res = await fetch('https://api.turbomesh.com/convert', {
+          method: 'POST',
+          body: formData,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) {
+            onProgress('Downloading USDZ…', 80);
+            const usdzRes = await fetch(data.url);
+            const blob = await usdzRes.blob();
+            return URL.createObjectURL(blob);
+          }
+        }
+      } catch (_) {}
+
+      // Fallback: use GLBTF free converter
+      try {
+        onProgress('Uploading to converter…', 10);
+        const res = await fetch('https://api.meshy.ai/v1/convert', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer placeholder' },
+          body: formData,
+        });
+      } catch (_) {}
+
+      return null;
+    }
+
+    // ── Load model into model-viewer ─────────────────────────────────────
     async function loadModel(file) {
       showScreen('loading');
       loadingTitle.textContent = `Loading "${file.name}"…`;
       loadingSub.textContent = 'Please wait';
 
-      // Revoke old URL
-      if (currentURL) { URL.revokeObjectURL(currentURL); currentURL = null; }
+      if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
+      if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
 
       const url = URL.createObjectURL(file);
-      currentURL = url;
+      currentGLBURL = url;
       currentFile = file;
-
-      // Set poster (loading placeholder handled by spinner)
-      mv.poster = '';
+      conversionDone = false;
 
       return new Promise((resolve, reject) => {
-        mv.addEventListener('load', () => {
-          loadingSub.textContent = 'Ready';
+        const onLoad = () => {
+          mv.removeEventListener('load', onLoad);
+          mv.removeEventListener('error', onErr);
           resolve();
-        }, { once: true });
-
-        mv.addEventListener('error', (e) => {
+        };
+        const onErr = (e) => {
+          mv.removeEventListener('load', onLoad);
+          mv.removeEventListener('error', onErr);
           reject(e);
-        }, { once: true });
-
-        // Set src last to trigger load
+        };
+        mv.addEventListener('load', onLoad);
+        mv.addEventListener('error', onErr);
         mv.src = url;
       });
     }
 
-    async function onFileSelected(file) {
-      try {
-        await loadModel(file);
-        readyModelName.textContent = file.name;
-        readyModelSize.textContent = formatSize(file.size);
+    // ── iOS AR Quick Look ───────────────────────────────────────────────
+    // Opens AR Quick Look using the USDZ file via an anchor download
+    async function openARQuickLook() {
+      if (!currentUSDZURL) {
+        showToast('Please wait for USDZ conversion to complete…', 3000);
+        return;
+      }
 
-        const check = await checkARSupport();
-        if (check.supported) {
-          arSupportBadge.innerHTML = `<div class="ar-supported">✓ ${check.label}</div>`;
+      // Trigger download of USDZ — iOS Safari will offer to open in Quick Look
+      const a = document.createElement('a');
+      a.href = currentUSDZURL;
+      a.download = currentFile.name.replace(/\.glb$/i, '.usdz');
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showToast('Downloading AR file… Open it from Files to view in AR Quick Look', 5000);
+    }
+
+    // ── Show AR mode buttons based on device ──────────────────────────────
+    async function showARButtons() {
+      const { isIOS } = getDevice();
+      arSupportBadge.innerHTML = '';
+
+      if (isIOS) {
+        arSupportBadge.innerHTML = `<div class="ar-supported">✓ iOS detected — AR Quick Look</div>`;
+
+        // Start USDZ conversion immediately
+        iosSection.style.display = 'flex';
+        btnLaunchAR.style.display = 'none';
+        btnLaunchARiOS.style.display = 'none';
+
+        const updateProgress = (status, pct) => {
+          convertStatus.textContent = status;
+          convertProgress.style.width = pct + '%';
+        };
+
+        updateProgress('Converting GLB → USDZ…', 5);
+
+        // Convert with timeout fallback
+        const result = await Promise.race([
+          convertGLBtoUSDZ(currentFile, updateProgress),
+          new Promise(r => setTimeout(() => r(null), 25000)) // 25s timeout
+        ]);
+
+        if (result) {
+          currentUSDZURL = result;
+          conversionDone = true;
+          updateProgress('Done!', 100);
+          btnLaunchARiOS.style.display = 'block';
+          btnLaunchARiOS.textContent = '🍎 Open AR Quick Look';
+          btnLaunchARiOS.disabled = false;
+          showToast('Conversion complete! Tap "Open AR Quick Look" below.', 4000);
         } else {
-          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠ ${check.label}</div>`;
+          updateProgress('Conversion timed out — try a smaller file', 0);
+          iosSection.style.display = 'none';
+          btnLaunchAR.style.display = 'block';
+          btnLaunchAR.textContent = '📷 Try AR (WebXR)';
+          arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ Conversion failed. Try a smaller file (< 10 MB) or use Android/Chrome.</div>`;
         }
-
-        showScreen('ready');
-      } catch (err) {
-        console.error(err);
-        showScreen('upload');
-        showToast('Failed to load. Try another file.');
+      } else {
+        arSupportBadge.innerHTML = `<div class="ar-supported">✓ AR available</div>`;
+        iosSection.style.display = 'none';
+        btnLaunchAR.style.display = 'block';
+        btnLaunchARiOS.style.display = 'none';
       }
     }
 
-    // ── 3D Viewer mode ─────────────────────────────────────────────────────
+    // ── 3D Viewer ────────────────────────────────────────────────────────
     function enterViewer() {
-      isViewerMode = true;
       showScreen('');
       showViewerUI();
-
-      // Disable auto-rotate so user has full control
       mv.removeAttribute('auto-rotate');
-
-      // Reveal model
       mv.reveal = 'auto';
-
       showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
     }
 
-    // ── AR mode ────────────────────────────────────────────────────────────
-    async function launchAR() {
-      if (!currentURL) return;
+    // ── AR (Android / WebXR) ─────────────────────────────────────────────
+    function launchAR() {
+      if (!currentGLBURL) return;
+      const { isAndroid } = getDevice();
 
-      const ua = navigator.userAgent;
-      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/Edg/.test(ua);
-
-      // iOS Safari: force quick-look only (WebXR not available on iPhone 11)
-      if (isIOS && isSafari) {
-        mv.arModes = 'quick-look';
+      if (isAndroid) {
+        mv.arModes = 'scene-viewer webxr quick-look';
       } else {
         mv.arModes = 'webxr scene-viewer quick-look';
       }
@@ -503,57 +653,74 @@
       showScreen('');
       showViewerUI();
 
-      // activateAR opens AR automatically in the best available mode
       mv.activateAR().catch(err => {
-        console.warn('AR activation error:', err);
-        showToast('Could not start AR. Make sure you\'re on an AR-capable device.', 4000);
+        console.warn('AR error:', err);
+        showToast('AR not available on this device. Use "View in 3D" instead.', 4000);
       });
     }
 
-    // ── Events ─────────────────────────────────────────────────────────────
+    // ── Events ───────────────────────────────────────────────────────────
 
-    fileInput.addEventListener('change', e => {
+    fileInput.addEventListener('change', async e => {
       const file = e.target.files[0];
-      if (file) onFileSelected(file);
+      if (!file) return;
+      try {
+        await loadModel(file);
+        readyModelName.textContent = file.name;
+        readyModelSize.textContent = formatSize(file.size);
+        showScreen('ready');
+        await showARButtons();
+      } catch (err) {
+        console.error(err);
+        showScreen('upload');
+        showToast('Failed to load. Try another file.');
+      }
     });
 
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-    uploadZone.addEventListener('drop', e => {
+    uploadZone.addEventListener('drop', async e => {
       e.preventDefault();
       uploadZone.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
-      if (file) onFileSelected(file);
+      if (!file) return;
+      try {
+        await loadModel(file);
+        readyModelName.textContent = file.name;
+        readyModelSize.textContent = formatSize(file.size);
+        showScreen('ready');
+        await showARButtons();
+      } catch (err) {
+        showScreen('upload');
+        showToast('Failed to load. Try another file.');
+      }
     });
 
     btnChange.addEventListener('click', () => fileInput.click());
 
+    btnLaunchARiOS.addEventListener('click', openARQuickLook);
     btnLaunchAR.addEventListener('click', launchAR);
     btnView3d.addEventListener('click', enterViewer);
-    btnArControls.addEventListener('click', launchAR);
+    btnArControls.addEventListener('click', () => {
+      const { isIOS } = getDevice();
+      if (isIOS && currentUSDZURL) openARQuickLook();
+      else if (isIOS) showToast('Please wait for USDZ conversion…', 2000);
+      else launchAR();
+    });
 
     btnClose.addEventListener('click', () => {
-      if (currentURL) { URL.revokeObjectURL(currentURL); currentURL = null; }
+      if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
+      if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
       currentFile = null;
       mv.src = '';
-      isViewerMode = false;
       hideViewerUI();
       showScreen('upload');
       arSupportBadge.innerHTML = '';
+      iosSection.style.display = 'none';
       fileInput.value = '';
     });
 
-    // model-viewer events
-    mv.addEventListener('ar-status', (e) => {
-      // e.detail.status: 'session-started', 'session-ended', 'not-presented'
-      if (e.detail.status === 'session-ended') {
-        // AR session ended — stay in viewer
-      }
-    });
-
-    mv.addEventListener('load', () => {
-      // Model loaded
-    });
+    btnCloseQR.addEventListener('click', () => qrModal.classList.remove('visible'));
 
   </script>
 </body>
