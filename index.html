@@ -376,7 +376,7 @@
     <div class="upload-main">
       <div class="screen-icon">🪄</div>
       <h1>AR Model Viewer</h1>
-      <p>Select a model to view in <strong>3D</strong> or <strong>AR</strong>.</p>
+      <p>Select a <strong>.glb</strong> to view in 3D<br/>or a <strong>.usdz</strong> file to view in 3D or AR.</p>
 
       <div class="model-select-wrap">
         <select id="model-select">
@@ -567,13 +567,12 @@
       controlsBar.classList.add('visible');
       modelNameTop.textContent = label || currentFile?.name || 'Model';
 
-      // AR button in controls bar: only for USDZ (GLB AR is disabled per user request)
+      // AR button in controls bar: only for USDZ (GLB AR is disabled)
       const { isIOS } = getDevice();
       if (isCurrentUSDZ) {
         btnArControls.style.display = 'block';
         btnArControls.textContent = isIOS ? '🍎 Open AR Quick Look' : '📷 View in AR';
-        // model-viewer can't preview USDZ, but we still need src set so the
-        // element is active and AR attributes can be applied. Set for all platforms.
+        // Set src on the model-viewer element so AR Quick Look / WebXR is ready
         const src = currentBlobURL || currentSrcURL;
         if (src && mv.src !== src) mv.src = src;
       } else {
@@ -614,14 +613,10 @@
           btnLaunchAR.style.display = 'block';
         }
       } else {
-        // GLB / GLTF — AR not supported in Quick Look on iOS, and user reports
-        // AR also doesn't work reliably for GLB on other platforms, so only show 3D.
+        // GLB / GLTF — no AR support, only 3D viewer available
         modelIconBadge.textContent = '📦';
-        arSupportBadge.innerHTML = `<div class="ar-unsupported">⚠️ AR needs .usdz</div>`;
-        if (isIOS) {
-          iosSection.style.display = 'block';
-        }
-        // Only 3D button — AR hidden for GLB across all platforms
+        arSupportBadge.innerHTML = `<div class="ar-unsupported">3D viewer only</div>`;
+        // No AR buttons for GLB on any platform
         btnLaunchAR.style.display    = 'none';
         btnLaunchARiOS.style.display = 'none';
       }
@@ -735,18 +730,19 @@
       showToast('Tap the downloaded file in the Files app to open AR Quick Look', 5000);
     }
 
-    // ── AR (Android / Desktop WebXR) ─────────────────────────────────────
+    // ── AR (Android / Desktop WebXR, or iOS USDZ Quick Look) ─────────────
     function launchAR() {
       if (!currentBlobURL && !currentSrcURL) return;
-      const { isAndroid } = getDevice();
+      const { isAndroid, isIOS } = getDevice();
 
-      // Dynamically add AR attributes only when needed (removed from HTML to prevent GLB errors)
-      mv.setAttribute('ar', '');
-      mv.setAttribute('ar-modes', isAndroid ? 'scene-viewer webxr quick-look' : 'webxr scene-viewer quick-look');
-      mv.reveal = 'auto';
-      showScreen('');
-      const label = currentFile?.name || (currentSrcURL ? currentSrcURL.split('/').pop().split('?')[0] : 'Model');
-      showViewerUI(label);
+      if (isCurrentUSDZ) {
+        // USDZ: on iOS → AR Quick Look; on Android/Desktop → WebXR / Scene Viewer
+        mv.setAttribute('ar', '');
+        mv.setAttribute('ar-modes', isIOS
+          ? 'quick-look'
+          : (isAndroid ? 'scene-viewer webxr' : 'webxr scene-viewer quick-look'));
+        mv.reveal = 'auto';
+      }
 
       mv.activateAR().catch(err => {
         console.warn('AR error:', err);
@@ -803,10 +799,27 @@
         showToast('Please select a model first', 2000);
         return;
       }
+      const name = url.split('/').pop().split('?')[0] || 'model';
+
       try {
         await loadModelURL(url);
-        const name = url.split('/').pop().split('?')[0] || 'model';
-        afterLoad(name, '(remote)');
+        // Auto-enter 3D viewer — no ready screen stop
+        showScreen('');
+        showViewerUI(name);
+
+        if (isCurrentUSDZ) {
+          mv.reveal = 'auto';
+          const { isIOS } = getDevice();
+          if (isIOS) {
+            showToast('🍎 Tap "Open AR Quick Look" — camera permission will be requested', 4000);
+          } else {
+            showToast('📷 Tap "View in AR" to launch AR with camera', 4000);
+          }
+        } else {
+          // GLB — just reveal the 3D viewer
+          mv.reveal = 'auto';
+          showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
+        }
       } catch (err) {
         console.error(err);
         showScreen('upload');
@@ -841,14 +854,8 @@
 
     // ── Viewer controls ───────────────────────────────────────────────────
     btnArControls.addEventListener('click', () => {
-      const { isIOS } = getDevice();
-      if (isIOS && isCurrentUSDZ) {
-        // iOS + USDZ → AR Quick Look
-        openARQuickLook();
-      } else {
-        // Android/Desktop + USDZ → WebXR; GLB → WebXR
-        launchAR();
-      }
+      // launchAR() now handles all cases: USDZ on iOS → Quick Look, USDZ on Android/Desktop → WebXR
+      launchAR();
     });
 
     btnClose.addEventListener('click', () => {
@@ -881,10 +888,25 @@
       saveSettings(url);
       settingsModal.classList.remove('visible');
 
+      const name = url.split('/').pop().split('?')[0] || 'model';
       try {
         await loadModelURL(url);
-        const name = url.split('/').pop().split('?')[0] || 'model';
-        afterLoad(name, '(remote)');
+        // Auto-enter 3D viewer — no ready screen stop
+        showScreen('');
+        showViewerUI(name);
+
+        if (isCurrentUSDZ) {
+          mv.reveal = 'auto';
+          const { isIOS } = getDevice();
+          if (isIOS) {
+            showToast('🍎 Tap "Open AR Quick Look" below to launch AR', 3500);
+          } else {
+            showToast('📷 Tap "View in AR" to launch AR', 3500);
+          }
+        } else {
+          mv.reveal = 'auto';
+          showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
+        }
         showToast('Model loaded from URL ✓', 2000);
       } catch (err) {
         console.error(err);
@@ -905,7 +927,19 @@
         try {
           await loadModelURL(saved);
           const name = saved.split('/').pop().split('?')[0] || 'model';
-          afterLoad(name, '(remote)');
+          // Auto-enter 3D viewer — no ready screen stop
+          showScreen('');
+          showViewerUI(name);
+          if (isCurrentUSDZ) {
+            mv.reveal = 'auto';
+            const { isIOS } = getDevice();
+            showToast(isIOS
+              ? '🍎 Tap "Open AR Quick Look" — camera permission will be requested'
+              : '📷 Tap "View in AR" to launch AR with camera', 4000);
+          } else {
+            mv.reveal = 'auto';
+            showToast('Drag to rotate · Pinch or scroll to zoom', 3000);
+          }
           return;
         } catch {
           // fall through to upload screen
