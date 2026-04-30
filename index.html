@@ -302,13 +302,13 @@
   <div id="screen-upload" class="screen">
     <div class="screen-icon">🪄</div>
     <h1>AR Model Viewer</h1>
-    <p>Select a <strong>.glb</strong> file, then place it in the real world using your device camera.</p>
+    <p>Select a <strong>.glb</strong> or <strong>.usdz</strong> file, then place it in the real world using your device camera.</p>
 
     <label class="upload-zone" id="upload-zone">
       <div class="icon">📦</div>
-      <div class="label">Tap or drop to select a GLB file</div>
-      <div class="hint">GLB or GLTF</div>
-      <input type="file" id="file-input" accept=".glb,.gltf" />
+      <div class="label">Tap or drop to select a model file</div>
+      <div class="hint">GLB · GLTF · USDZ</div>
+      <input type="file" id="file-input" accept=".glb,.gltf,.usdz" />
     </label>
   </div>
 
@@ -443,6 +443,7 @@
     let currentGLBURL = null;   // blob URL for model-viewer
     let currentUSDZURL = null;   // blob URL for AR Quick Look
     let conversionDone = false;
+    let isCurrentUSDZ = false;
 
     // ── Device detection ───────────────────────────────────────────────────
     function getDevice() {
@@ -538,10 +539,12 @@
       if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
       if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
 
+      const isUSDZ = /\.usdz$/i.test(file.name);
       const url = URL.createObjectURL(file);
       currentGLBURL = url;
       currentFile = file;
-      conversionDone = false;
+      conversionDone = isUSDZ; // Skip conversion if already USDZ
+      isCurrentUSDZ = isUSDZ;
 
       return new Promise((resolve, reject) => {
         const onLoad = () => {
@@ -563,21 +566,27 @@
     // ── iOS AR Quick Look ───────────────────────────────────────────────
     // Opens AR Quick Look using the USDZ file via an anchor download
     async function openARQuickLook() {
-      if (!currentUSDZURL) {
+      if (!currentUSDZURL && !isCurrentUSDZ) {
         showToast('Please wait for USDZ conversion to complete…', 3000);
         return;
       }
 
       // Trigger download of USDZ — iOS Safari will offer to open in Quick Look
       const a = document.createElement('a');
-      a.href = currentUSDZURL;
-      a.download = currentFile.name.replace(/\.glb$/i, '.usdz');
+      a.href = currentUSDZURL || currentGLBURL;
+      a.download = currentFile.name.replace(/\.(glb|gltf)$/i, '.usdz');
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      showToast('Downloading AR file… Open it from Files to view in AR Quick Look', 5000);
+      const isNative = isCurrentUSDZ;
+      showToast(
+        isNative
+          ? 'Downloading AR file… Open it from Files to view in AR Quick Look'
+          : 'Downloading AR file… Open it from Files to view in AR Quick Look',
+        5000
+      );
     }
 
     // ── Show AR mode buttons based on device ──────────────────────────────
@@ -588,7 +597,18 @@
       if (isIOS) {
         arSupportBadge.innerHTML = `<div class="ar-supported">✓ iOS detected — AR Quick Look</div>`;
 
-        // Start USDZ conversion immediately
+        // If file is already USDZ, skip conversion entirely
+        if (isCurrentUSDZ) {
+          iosSection.style.display = 'none';
+          btnLaunchAR.style.display = 'none';
+          btnLaunchARiOS.style.display = 'block';
+          btnLaunchARiOS.textContent = '🍎 Open AR Quick Look';
+          btnLaunchARiOS.disabled = false;
+          conversionDone = true;
+          return;
+        }
+
+        // Start USDZ conversion for GLB files
         iosSection.style.display = 'flex';
         btnLaunchAR.style.display = 'none';
         btnLaunchARiOS.style.display = 'none';
@@ -712,6 +732,7 @@
       if (currentGLBURL) { URL.revokeObjectURL(currentGLBURL); currentGLBURL = null; }
       if (currentUSDZURL) { URL.revokeObjectURL(currentUSDZURL); currentUSDZURL = null; }
       currentFile = null;
+      isCurrentUSDZ = false;
       mv.src = '';
       hideViewerUI();
       showScreen('upload');
